@@ -104,7 +104,8 @@
                 <div class="flex items-center gap-3 self-start sm:self-center">
                     <div class="w-1.5 h-6 bg-blue-600 rounded-full shadow-lg"></div>
                     <h2 class="text-[10px] font-black uppercase tracking-widest leading-none">Manajemen Penagihan</h2>
-                    <button onclick="triggerStatusPopup()" class="p-1.5 bg-blue-50 text-blue-600 rounded-lg"><i data-lucide="info" size="14"></i></button>
+                    <!-- Tombol Manual untuk Membuka Popup Status -->
+                    <button onclick="triggerStatusPopup(true)" class="p-1.5 bg-blue-50 text-blue-600 rounded-lg"><i data-lucide="info" size="14"></i></button>
                 </div>
                 <div class="relative w-full sm:w-48">
                     <select id="filter-year" class="w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-3 text-[11px] font-black uppercase outline-none appearance-none shadow-inner" onchange="renderBillingGrid()">
@@ -152,7 +153,7 @@
             <h3 class="text-xl font-black uppercase italic text-center mb-6 tracking-tighter leading-none">Indikator Iuran</h3>
             <div class="space-y-4">
                 <div class="flex items-center gap-4 bg-slate-50 p-3 rounded-2xl border border-slate-100 text-slate-900">
-                    <div class="w-4 h-4 bg-slate-300 rounded-full"></div>
+                    <div class="w-4 h-4 bg-slate-300 rounded-full shadow-inner"></div>
                     <div><p class="text-[10px] font-black uppercase mb-1">Belum Tercatat</p><p class="text-[8px] text-slate-400">Tagihan belum dibuat.</p></div>
                 </div>
                 <div class="flex items-center gap-4 bg-orange-50 p-3 rounded-2xl border border-orange-100 text-slate-900">
@@ -169,9 +170,9 @@
     </div>
 
     <!-- Modal Login -->
-    <div id="modal-login" class="hide fixed inset-0 modal-overlay z-[500] flex items-center justify-center p-4">
+    <div id="modal-login" class="hide fixed inset-0 modal-overlay z-[500] flex items-center justify-center p-4 text-slate-900">
         <div class="bg-white w-full max-w-sm rounded-[40px] p-10 shadow-2xl border-b-[10px] border-slate-900">
-            <h3 class="text-2xl font-black uppercase italic text-center mb-8 text-slate-900">Login Admin</h3>
+            <h3 class="text-2xl font-black uppercase italic text-center mb-8">Login Admin</h3>
             <form id="form-login" class="space-y-4">
                 <input type="email" id="login-email" required class="w-full bg-slate-50 border-0 rounded-2xl p-5 font-bold text-sm outline-none shadow-inner" placeholder="Email">
                 <input type="password" id="login-password" required class="w-full bg-slate-50 border-0 rounded-2xl p-5 font-bold text-sm outline-none shadow-inner" placeholder="Sandi">
@@ -184,9 +185,9 @@
     </div>
 
     <!-- Modal Edit -->
-    <div id="modal-edit" class="hide fixed inset-0 modal-overlay z-[500] flex items-center justify-center p-4">
+    <div id="modal-edit" class="hide fixed inset-0 modal-overlay z-[500] flex items-center justify-center p-4 text-slate-900">
         <div class="bg-white w-full max-w-sm rounded-[40px] p-8 shadow-2xl overflow-y-auto max-h-[85vh] border-b-[10px] border-slate-900">
-            <h3 id="edit-modal-title" class="text-xl font-black uppercase italic text-center mb-6 text-slate-900">Update Iuran</h3>
+            <h3 id="edit-modal-title" class="text-xl font-black uppercase italic text-center mb-6">Update Iuran</h3>
             <form id="form-edit" class="space-y-4">
                 <input type="hidden" id="edit-id">
                 <input type="hidden" id="edit-month">
@@ -232,13 +233,13 @@
     </div>
 
     <!-- Modal Kwitansi -->
-    <div id="modal-receipt" class="hide fixed inset-0 modal-overlay z-[600] flex items-center justify-center p-4 md:p-6 print:hidden">
+    <div id="modal-receipt" class="hide fixed inset-0 modal-overlay z-[600] flex items-center justify-center p-4 md:p-6 print:hidden text-slate-900">
         <div class="bg-white w-full max-w-[420px] rounded-[48px] overflow-hidden shadow-2xl animate-in fade-in duration-300 flex flex-col">
             <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-white shrink-0">
                 <span class="font-black text-[8px] text-slate-300 tracking-[0.2em] uppercase italic text-center">Receipt System</span>
                 <div class="flex gap-1.5">
-                    <button onclick="downloadReceipt()" class="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100"><i data-lucide="download" size="18"></i></button>
-                    <button onclick="window.print()" class="p-2 bg-slate-900 text-white rounded-lg hover:bg-black"><i data-lucide="printer" size="18"></i></button>
+                    <button onclick="downloadReceipt()" class="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 shadow-sm"><i data-lucide="download" size="18"></i></button>
+                    <button onclick="window.print()" class="p-2 bg-slate-900 text-white rounded-lg hover:bg-black shadow-sm"><i data-lucide="printer" size="18"></i></button>
                     <button onclick="closeReceipt()" class="p-2 bg-slate-100 text-slate-400 rounded-lg"><i data-lucide="x" size="18"></i></button>
                 </div>
             </div>
@@ -248,7 +249,7 @@
         </div>
     </div>
 
-    <!-- Modal View Proof (Zoom) -->
+    <!-- Modal View Proof -->
     <div id="modal-view-proof" class="hide fixed inset-0 modal-overlay z-[700] flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-sm rounded-[40px] overflow-hidden shadow-2xl animate-in zoom-in duration-300">
             <div class="p-4 flex justify-between items-center border-b bg-white text-slate-900">
@@ -316,29 +317,43 @@
         }
 
         function updateUI(admin) {
-            document.getElementById('badge-admin').classList.toggle('hide', !admin);
-            document.getElementById('badge-guest').classList.toggle('hide', admin);
-            document.getElementById('btn-login-open').classList.toggle('hide', admin);
-            document.getElementById('btn-logout-trigger').classList.toggle('hide', !admin);
-            document.getElementById('btn-delete-record').classList.toggle('hide', !admin);
+            const ba = document.getElementById('badge-admin'), bg = document.getElementById('badge-guest'), blo = document.getElementById('btn-login-open'), blt = document.getElementById('btn-logout-trigger'), bdr = document.getElementById('btn-delete-record');
+            if(ba) ba.classList.toggle('hide', !admin); if(bg) bg.classList.toggle('hide', admin); if(blo) blo.classList.toggle('hide', admin); if(blt) blt.classList.toggle('hide', !admin); if(bdr) bdr.classList.toggle('hide', !admin);
             lucide.createIcons();
         }
 
         function toggleLoginModal(show) { document.getElementById('modal-login').classList.toggle('hide', !show); }
+        
         function hideLoading() { 
             const overlay = document.getElementById('loading-overlay'); 
             if(overlay) { 
                 overlay.style.opacity = '0'; 
-                setTimeout(() => { overlay.classList.add('hide'); triggerStatusPopup(); }, 500); 
+                setTimeout(() => { 
+                    overlay.classList.add('hide'); 
+                    // PANGGIL POPUP DI SINI: Hanya jika belum pernah dilihat (localStorage)
+                    triggerStatusPopup(false); 
+                }, 500); 
             } 
         }
 
-        function triggerStatusPopup() {
+        function triggerStatusPopup(forced = false) {
             const modal = document.getElementById('modal-status-info');
-            if(modal) modal.classList.remove('hide');
+            if(!modal) return;
+            
+            // Logika LocalStorage
+            const alreadySeen = localStorage.getItem('gdi_wifi_status_seen');
+            
+            // Tampilkan jika dipaksa (tombol info) ATAU belum pernah dilihat
+            if (forced || !alreadySeen) {
+                modal.classList.remove('hide');
+                if (!forced) localStorage.setItem('gdi_wifi_status_seen', 'true');
+            }
         }
 
-        function closeStatusModal() { document.getElementById('modal-status-info').classList.add('hide'); }
+        function closeStatusModal() { 
+            const modal = document.getElementById('modal-status-info');
+            if(modal) modal.classList.add('hide'); 
+        }
 
         function syncData() {
             db.collection('artifacts').doc(appId).collection('public').doc('data').collection('payments')
@@ -347,12 +362,14 @@
                 updateYearFilter();
                 renderBillingGrid();
                 const total = currentData.reduce((s, i) => s + (Number(i.amount) || 0), 0);
-                document.getElementById('display-total').textContent = formatIDR(total);
+                const displayTotalEl = document.getElementById('display-total');
+                if(displayTotalEl) displayTotalEl.textContent = formatIDR(total);
             });
         }
 
         function updateYearFilter() {
             const sel = document.getElementById('filter-year');
+            if(!sel) return;
             const years = [...new Set(currentData.map(p => String(p.year).trim()))];
             const now = String(new Date().getFullYear());
             if(!years.includes(now)) years.push(now);
@@ -370,23 +387,19 @@
                 <div class="bg-white rounded-[40px] premium-card overflow-hidden">
                     <div class="p-6 border-b border-slate-50 bg-slate-50/10 flex items-center gap-4 text-slate-900">
                         <div class="w-12 h-12 bg-slate-900 text-white rounded-[18px] flex items-center justify-center shadow-xl transform -rotate-6"><i data-lucide="receipt" size="22"></i></div>
-                        <div>
-                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] leading-none mb-1.5">Penagihan Iuran</p>
-                            <p class="text-sm font-black uppercase text-slate-900 tracking-tight leading-none">${payer}</p>
-                        </div>
+                        <div><p class="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] leading-none mb-1.5">Penagihan Iuran</p><p class="text-sm font-black uppercase text-slate-900 tracking-tight leading-none">${payer}</p></div>
                     </div>
-                    <div class="p-5 grid grid-cols-4 gap-3">
+                    <div class="p-5 grid grid-cols-4 gap-3 text-slate-900">
                         ${monthOrder.map(month => {
                             const doc = payerDocs.find(d => d.month === month);
                             const st = doc ? (doc.status || 'Lunas') : 'empty';
                             let bgColor = "bg-slate-50 border-slate-100 text-slate-300", icon = "plus";
-                            if (st === 'Lunas') { bgColor = "bg-green-500 border-green-600 text-white shadow-lg"; icon = "check"; }
-                            else if (st === 'Belum Lunas') { bgColor = "bg-orange-500 border-orange-600 text-white shadow-lg"; icon = "alert-circle"; }
-                            return `<button onclick="handleBillingClick('${payer}', '${month}', '${year}', '${doc ? doc.id : ''}')" class="bill-card aspect-square rounded-[24px] border-b-4 flex flex-col items-center justify-center gap-1 ${bgColor}"><span class="text-[8px] font-black uppercase leading-none text-inherit">${month.slice(0,3)}</span><i data-lucide="${icon}" size="14"></i></button>`;
+                            if (st === 'Lunas') { bgColor = "bg-green-500 border-green-600 text-white shadow-lg text-white"; icon = "check"; }
+                            else if (st === 'Belum Lunas') { bgColor = "bg-orange-500 border-orange-600 text-white shadow-lg text-white"; icon = "alert-circle"; }
+                            return `<button onclick="handleBillingClick('${payer}', '${month}', '${year}', '${doc ? doc.id : ''}')" class="bill-card aspect-square rounded-[24px] border-b-4 flex flex-col items-center justify-center gap-1 transition-all ${bgColor}"><span class="text-[8px] font-black uppercase leading-none">${month.slice(0,3)}</span><i data-lucide="${icon}" size="14"></i></button>`;
                         }).join('')}
                     </div>
-                </div>
-            `;
+                </div>`;
             lucide.createIcons();
         }
 
@@ -396,7 +409,8 @@
             document.getElementById('edit-id').value = docId || "";
             document.getElementById('edit-month').value = month;
             document.getElementById('edit-year').value = year;
-            document.getElementById('edit-modal-title').textContent = `${month} ${year}`;
+            const titleEl = document.getElementById('edit-modal-title');
+            if(titleEl) titleEl.textContent = `${month} ${year}`;
             document.getElementById('edit-status').value = p ? (p.status || 'Belum Lunas') : 'Belum Lunas';
             document.getElementById('edit-amount').value = p ? p.amount : 150000;
             document.getElementById('edit-pay-date').value = (p && p.payDate) ? p.payDate : "";
@@ -407,32 +421,17 @@
             document.getElementById('modal-edit').classList.remove('hide');
         }
 
-        function closeEditModal() { document.getElementById('modal-edit').classList.add('hide'); }
-
-        document.getElementById('form-edit').onsubmit = async (e) => {
-            e.preventDefault(); 
-            const id = document.getElementById('edit-id').value;
-            const btn = document.getElementById('btn-do-update');
-            btn.disabled = true; btn.textContent = "Sync...";
-            const payload = { 
-                payer: "Jho/Joventaluk", 
-                month: document.getElementById('edit-month').value, 
-                year: Number(document.getElementById('edit-year').value), 
-                status: document.getElementById('edit-status').value, 
-                amount: Number(document.getElementById('edit-amount').value), 
-                payDate: document.getElementById('edit-status').value === 'Lunas' ? document.getElementById('edit-pay-date').value : "", 
-                notes: document.getElementById('edit-status').value === 'Lunas' ? document.getElementById('edit-notes').value : "", 
-                proofImage: tempBase64Edit, 
-                date: new Date().toISOString().split('T')[0], 
-                timestamp: firebase.firestore.FieldValue.serverTimestamp() 
+        const formEdit = document.getElementById('form-edit');
+        if(formEdit) {
+            formEdit.onsubmit = async (e) => {
+                e.preventDefault(); 
+                const id = document.getElementById('edit-id').value, btn = document.getElementById('btn-do-update');
+                btn.disabled = true; btn.textContent = "Sync...";
+                const payload = { payer: "Jho/Joventaluk", month: document.getElementById('edit-month').value, year: Number(document.getElementById('edit-year').value), status: document.getElementById('edit-status').value, amount: Number(document.getElementById('edit-amount').value), payDate: document.getElementById('edit-status').value === 'Lunas' ? document.getElementById('edit-pay-date').value : "", notes: document.getElementById('edit-status').value === 'Lunas' ? document.getElementById('edit-notes').value : "", proofImage: tempBase64Edit, date: new Date().toISOString().split('T')[0], timestamp: firebase.firestore.FieldValue.serverTimestamp() };
+                try { const col = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('payments'); if (id) await col.doc(id).update(payload); else await col.add(payload); showToast("Data Disimpan."); closeEditModal(); } catch (err) { showToast("Error simpan.", "error"); }
+                btn.disabled = false; btn.textContent = "Simpan";
             };
-            try { 
-                const col = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('payments'); 
-                if (id) await col.doc(id).update(payload); else await col.add(payload);
-                showToast("Data Disimpan."); closeEditModal(); 
-            } catch (err) { showToast("Error simpan.", "error"); }
-            btn.disabled = false; btn.textContent = "Simpan";
-        };
+        }
 
         function processImage(input) { 
             const file = input.files[0]; if (!file) return; 
@@ -464,42 +463,56 @@
             }
         }
 
-        document.getElementById('form-login').onsubmit = async (e) => {
-            e.preventDefault(); const btn = document.getElementById('btn-do-login'); btn.disabled = true;
-            try { await auth.signInWithEmailAndPassword(document.getElementById('login-email').value, document.getElementById('login-password').value); showToast("Admin Verified."); toggleLoginModal(false); } catch (err) { showToast("Login Salah.", "error"); }
-            btn.disabled = false;
-        };
+        const formLogin = document.getElementById('form-login');
+        if(formLogin) {
+            formLogin.onsubmit = async (e) => {
+                e.preventDefault(); const btn = document.getElementById('btn-do-login'); btn.disabled = true;
+                try { await auth.signInWithEmailAndPassword(document.getElementById('login-email').value, document.getElementById('login-password').value); showToast("Admin Verified."); toggleLoginModal(false); } catch (err) { showToast("Login Salah.", "error"); }
+                btn.disabled = false;
+            };
+        }
 
-        document.getElementById('btn-logout-trigger').onclick = () => auth.signOut();
-        document.getElementById('btn-login-open').onclick = () => toggleLoginModal(true);
-        document.getElementById('btn-delete-record').onclick = async () => {
-            const id = document.getElementById('edit-id').value;
-            if(!id) return;
-            if(confirm("Hapus record ini?")) {
-                try { await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('payments').doc(id).delete(); showToast("Dihapus."); closeEditModal(); } catch(e) {}
-            }
-        };
+        const btnLogoutTrigger = document.getElementById('btn-logout-trigger');
+        if(btnLogoutTrigger) btnLogoutTrigger.onclick = () => auth.signOut();
+        
+        const btnLoginOpen = document.getElementById('btn-login-open');
+        if(btnLoginOpen) btnLoginOpen.onclick = () => toggleLoginModal(true);
+        
+        const btnDeleteRec = document.getElementById('btn-delete-record');
+        if(btnDeleteRec) {
+            btnDeleteRec.onclick = async () => {
+                const id = document.getElementById('edit-id').value;
+                if(!id) return;
+                if(confirm("Hapus record ini?")) {
+                    try { await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('payments').doc(id).delete(); showToast("Dihapus."); closeEditModal(); } catch(e) {}
+                }
+            };
+        }
 
         function viewReceipt(id) {
             const p = currentData.find(x => x.id === id); if (!p) return;
             const sc = p.status === 'Belum Lunas' ? 'text-red-600' : 'text-slate-900', pt = p.payDate ? new Date(p.payDate).toLocaleString('id-ID', {day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit'}) : "-";
-            document.getElementById('receipt-modal-content').innerHTML = `
-                <div id="capture-area" class="text-slate-900">
-                    <div class="text-center mb-8"><p class="font-black text-xs uppercase tracking-tight mb-0.5 px-4 leading-tight">Iuran Bersama Wifi Ferdi & Jho/Joventaluk</p><p class="text-[8px] font-bold uppercase tracking-[0.1em] text-slate-400 leading-none mt-1">Bengkayang Digital Ledger</p><p class="text-[7px] font-medium text-slate-500 leading-tight mt-2 px-6 uppercase">Griya Damai Indah Blok B No. 8</p><p class="text-[7px] font-medium text-slate-500 leading-tight italic">WhatsApp: 082149335323 (Jho)</p></div>
-                    <div class="space-y-6 mb-8 border-t border-b border-dashed border-slate-200 py-8 text-left">
-                        <div><span class="text-[7px] font-black text-slate-300 uppercase leading-none mb-2 block tracking-widest">Diterima Dari</span><div class="relative"><span class="text-lg font-black uppercase text-slate-900 block tracking-tight">${p.payer}</span><div class="w-full h-[1.5px] bg-slate-900 mt-1"></div></div></div>
-                        <div><span class="text-[7px] font-black text-slate-300 uppercase leading-none mb-2 block tracking-widest leading-none">Terbilang</span><span class="text-[10px] font-bold italic text-slate-700 leading-tight block"># ${getTerbilang(p.amount)} Rupiah #</span></div>
-                        <div><span class="text-[7px] font-black text-slate-300 uppercase leading-none mb-2 block tracking-widest text-blue-600 leading-none">Status & Periode</span><div class="flex flex-col gap-1.5"><span class="text-[11px] font-black leading-none uppercase ${sc}">${p.status || 'Lunas'} — ${p.month} ${p.year}</span>${p.status === 'Lunas' ? `<p class="text-[8px] font-bold text-blue-600 uppercase tracking-tight leading-none italic">Diterima: ${pt}</p>` : ''}${p.notes ? `<p class="text-[9px] font-medium text-slate-500 border-l-2 border-slate-200 pl-2 mt-1 leading-relaxed capitalize">${p.notes}</p>` : ''}</div></div>
-                    </div>
-                    ${p.proofImage ? `<div class="mb-8 p-4 bg-slate-50 rounded-2xl border border-slate-100 text-center"><p class="text-[7px] font-black text-slate-300 uppercase tracking-widest mb-3">Lampiran Foto Bukti</p><img src="${p.proofImage}" class="w-full h-auto rounded-xl shadow-sm border border-white mx-auto"></div>` : ''}
-                    <div class="bg-slate-900 text-white p-5 rounded-2xl text-center mb-8 border-b-4 border-slate-700 shadow-lg"><p class="text-[7px] font-black uppercase opacity-50 mb-1 tracking-widest leading-none">TOTAL PEMBAYARAN (NET)</p><p class="text-2xl font-black tracking-tighter leading-none">${formatIDR(p.amount)}</p></div>
-                    <div class="text-center"><p class="text-[9px] font-black text-slate-400 mb-4 uppercase tracking-widest leading-none">Bengkayang, ${new Date(p.date).toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'})}</p><div class="h-16 flex items-center justify-center"><p class="text-5xl cursive text-slate-900 font-bold transform -rotate-2 select-none leading-none">Ferdi</p></div></div>
-                </div>`;
+            const rmc = document.getElementById('receipt-modal-content');
+            if(rmc) {
+                rmc.innerHTML = `
+                    <div id="capture-area" class="text-slate-900">
+                        <div class="text-center mb-8"><p class="font-black text-xs uppercase tracking-tight mb-0.5 px-4 leading-tight">Iuran Bersama Wifi Ferdi & Jho/Joventaluk</p><p class="text-[8px] font-bold uppercase tracking-[0.1em] text-slate-400 leading-none mt-1">Bengkayang Digital Ledger</p><p class="text-[7px] font-medium text-slate-500 leading-tight mt-2 px-6 uppercase">Griya Damai Indah Blok B No. 8</p><p class="text-[7px] font-medium text-slate-500 leading-tight italic text-slate-400 text-slate-400 text-slate-400">WhatsApp: 082149335323 (Jho)</p></div>
+                        <div class="space-y-6 mb-8 border-t border-b border-dashed border-slate-200 py-8 text-left">
+                            <div><span class="text-[7px] font-black text-slate-300 uppercase leading-none mb-2 block tracking-widest">Diterima Dari</span><div class="relative"><span class="text-lg font-black uppercase text-slate-900 block tracking-tight">${p.payer}</span><div class="w-full h-[1.5px] bg-slate-900 mt-1"></div></div></div>
+                            <div><span class="text-[7px] font-black text-slate-300 uppercase leading-none mb-2 block tracking-widest leading-none">Terbilang</span><span class="text-[10px] font-bold italic text-slate-700 leading-tight block text-slate-700"># ${getTerbilang(p.amount)} Rupiah #</span></div>
+                            <div><span class="text-[7px] font-black text-slate-300 uppercase leading-none mb-2 block tracking-widest text-blue-600 leading-none">Status & Periode</span><div class="flex flex-col gap-1.5 text-slate-900"><span class="text-[11px] font-black leading-none uppercase ${sc}">${p.status || 'Lunas'} — ${p.month} ${p.year}</span>${p.status === 'Lunas' ? `<p class="text-[8px] font-bold text-blue-600 uppercase tracking-tight leading-none italic">Diterima: ${pt}</p>` : ''}${p.notes ? `<p class="text-[9px] font-medium text-slate-500 border-l-2 border-slate-200 pl-2 mt-1 leading-relaxed capitalize">${p.notes}</p>` : ''}</div></div>
+                        </div>
+                        ${p.proofImage ? `<div class="mb-8 p-4 bg-slate-50 rounded-2xl border border-slate-100 text-center text-slate-900"><p class="text-[7px] font-black text-slate-300 uppercase tracking-widest mb-3">Lampiran Foto Bukti</p><img src="${p.proofImage}" class="w-full h-auto rounded-xl shadow-sm border border-white mx-auto"></div>` : ''}
+                        <div class="bg-slate-900 text-white p-5 rounded-2xl text-center mb-8 border-b-4 border-slate-700 shadow-lg text-white"><p class="text-[7px] font-black uppercase opacity-50 mb-1 tracking-widest leading-none">TOTAL PEMBAYARAN (NET)</p><p class="text-2xl font-black tracking-tighter leading-none">${formatIDR(p.amount)}</p></div>
+                        <div class="text-center"><p class="text-[9px] font-black text-slate-400 mb-4 uppercase tracking-widest leading-none">Bengkayang, ${new Date(p.date).toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'})}</p><div class="h-16 flex items-center justify-center text-slate-900"><p class="text-5xl cursive text-slate-900 font-bold transform -rotate-2 select-none leading-none">Ferdi</p></div></div>
+                    </div>`;
+            }
             document.getElementById('modal-receipt').classList.remove('hide'); lucide.createIcons();
         }
 
         async function downloadReceipt() {
             const area = document.getElementById('capture-area'), btn = event.currentTarget;
+            if(!area || !btn) return;
             btn.disabled = true;
             try { 
                 const canvas = await html2canvas(area, { scale: 3, backgroundColor: "#ffffff", width: 380, logging: false, useCORS: true }); 
@@ -513,9 +526,10 @@
 
         function closeReceipt() { document.getElementById('modal-receipt').classList.add('hide'); }
         function viewProof(b64) { 
-            if(!b64) return showToast("Foto tidak ada.");
-            document.getElementById('view-proof-img').src = b64;
-            document.getElementById('modal-view-proof').classList.remove('hide');
+            const vpi = document.getElementById('view-proof-img'), mvp = document.getElementById('modal-view-proof');
+            if(!b64 || !vpi || !mvp) return showToast("Foto tidak ada.");
+            vpi.src = b64;
+            mvp.classList.remove('hide');
         }
         
         window.onload = () => initSecurity();
