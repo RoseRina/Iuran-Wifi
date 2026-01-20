@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ledger Iuran Wifi - Edisi Thermal 58mm</title>
-
+    
     <!-- Framework & Fonts -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Cedarville+Cursive&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
-
+    
     <!-- Library Ekspor Gambar -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-
+    
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
@@ -21,17 +21,477 @@
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; -webkit-font-smoothing: antialiased; }
         .cursive { font-family: 'Cedarville Cursive', cursive; }
+        
+        #loading-overlay {
+            position: fixed; inset: 0; background: #ffffff;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 9999;
+        }
+
+        .premium-card {
+            background: #ffffff;
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            box-shadow: 0 10px 25px -10px rgba(0, 0, 0, 0.05);
+        }
+
         .hide { display: none !important; }
+
+        /* --- OPTIMASI CETAK THERMAL 58mm --- */
+        @media print {
+            @page { size: 58mm auto; margin: 0; }
+            body { background: white; margin: 0; padding: 0; width: 58mm; }
+            body * { visibility: hidden; }
+            #receipt-modal-content, #receipt-modal-content * { visibility: visible; }
+            #receipt-modal-content {
+                position: absolute; left: 0; top: 0;
+                width: 58mm !important;
+                padding: 4mm !important;
+                border: none !important;
+                box-shadow: none !important;
+            }
+            .no-print { display: none !important; }
+        }
+        
+        /* Area Tangkapan Gambar (Locked for 58mm) */
+        #capture-area {
+            width: 380px; 
+            background: white;
+            padding: 25px;
+            margin: auto;
+        }
+
+        .modal-overlay {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(8px);
+        }
+        
+        select { -webkit-appearance: none; -moz-appearance: none; appearance: none; }
     </style>
 </head>
 <body class="bg-[#f8fafc] text-slate-900 min-h-screen">
 
-<h1 style="padding:40px;font-weight:900">Ledger Wifi — FULL VERSION AKTIF</h1>
-<p style="padding:0 40px 40px">Jika kamu melihat teks ini, berarti HTML penuh sudah terdeploy dengan benar.</p>
+    <!-- Notifikasi Toast -->
+    <div id="toast" class="hide fixed top-6 left-1/2 -translate-x-1/2 z-[1000] w-[90%] max-w-[350px]">
+        <div class="bg-slate-900 text-white p-4 rounded-2xl shadow-2xl flex items-center gap-3 border border-white/10">
+            <div id="toast-icon" class="p-2 rounded-lg bg-blue-500 text-white"><i data-lucide="info" size="16"></i></div>
+            <p id="toast-message" class="text-[10px] font-bold uppercase tracking-widest flex-1"></p>
+        </div>
+    </div>
 
-<script>
-console.log("Ledger Wifi FULL loaded");
-</script>
+    <!-- Layar Pemuatan -->
+    <div id="loading-overlay">
+        <div class="w-10 h-10 border-4 border-slate-100 border-t-slate-900 rounded-full animate-spin"></div>
+        <p class="text-[9px] font-black uppercase tracking-[0.4em] text-slate-400 mt-4 text-center px-4">Mengamankan Sesi...</p>
+    </div>
 
+    <div class="max-w-5xl mx-auto p-4 md:p-8">
+        <!-- Header Utama -->
+        <header class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-6 rounded-[32px] shadow-sm border border-slate-100">
+            <div class="flex items-center gap-4">
+                <div class="bg-slate-900 p-2.5 rounded-xl text-white transform -rotate-3"><i data-lucide="wifi" size="24"></i></div>
+                <div>
+                    <h1 class="text-xl font-extrabold tracking-tighter uppercase leading-none text-slate-900">Ledger Wifi</h1>
+                    <div id="badge-admin" class="hide text-[8px] font-black text-blue-600 uppercase bg-blue-50 px-2 py-0.5 rounded border border-blue-100 mt-1 inline-block tracking-widest">Admin</div>
+                    <div id="badge-guest" class="text-[8px] font-black text-slate-400 uppercase bg-slate-50 px-2 py-0.5 rounded border border-slate-100 mt-1 inline-block tracking-widest">Tamu</div>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <button id="btn-login-open" class="px-5 py-3 bg-slate-900 text-white rounded-xl text-[9px] font-black uppercase tracking-widest active:scale-95 transition-all">Masuk</button>
+                <button id="btn-logout-trigger" class="hide px-5 py-3 bg-red-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest active:scale-95 transition-all">Keluar</button>
+                <div class="bg-slate-50 px-5 py-2.5 rounded-xl border border-slate-200 text-center min-w-[150px]">
+                    <p class="text-[8px] text-slate-400 font-black uppercase mb-0.5 tracking-widest leading-none">Total Kas</p>
+                    <p id="display-total" class="text-lg font-black text-blue-600 leading-none">Rp 0,00</p>
+                </div>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <!-- Panel Input -->
+            <div class="lg:col-span-4 order-2 lg:order-1">
+                <div id="panel-admin" class="hide bg-white p-8 rounded-[40px] premium-card sticky top-8">
+                    <h2 class="text-[10px] font-black text-slate-900 uppercase tracking-widest mb-8 flex items-center gap-2">
+                        <i data-lucide="plus-circle" size="16"></i> Catat Iuran
+                    </h2>
+                    <form id="form-payment" class="space-y-5">
+                        <div>
+                            <label class="text-[9px] font-black text-slate-400 uppercase ml-1 tracking-widest leading-none">Nama Penyetor</label>
+                            <select id="field-payer" class="w-full bg-slate-50 border-0 rounded-xl p-4 font-bold text-sm outline-none shadow-inner cursor-pointer">
+                                <option value="Jho/Joventaluk">Jho/Joventaluk (B.8)</option>
+                                <option value="Ferdi">Ferdi (A.9)</option>
+                            </select>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-[9px] font-black text-slate-400 uppercase ml-1 tracking-widest leading-none">Bulan</label>
+                                <select id="field-month" class="w-full bg-slate-50 border-0 rounded-xl p-4 font-bold text-sm outline-none shadow-inner cursor-pointer">
+                                    <option>Januari</option><option>Februari</option><option>Maret</option><option>April</option><option>Mei</option><option>Juni</option><option>Juli</option><option>Agustus</option><option>September</option><option>Oktober</option><option>November</option><option>Desember</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-[9px] font-black text-slate-400 uppercase ml-1 tracking-widest leading-none">Tahun</label>
+                                <input type="number" id="field-year" class="w-full bg-slate-50 border-0 rounded-xl p-4 font-bold text-sm outline-none shadow-inner">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-[9px] font-black text-slate-400 uppercase ml-1 tracking-widest leading-none">Status Pembayaran</label>
+                            <select id="field-status" class="w-full bg-slate-50 border-0 rounded-xl p-4 font-bold text-sm outline-none shadow-inner cursor-pointer">
+                                <option value="Lunas">Lunas</option>
+                                <option value="Belum Lunas">Belum Lunas</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-[9px] font-black text-blue-600 uppercase ml-1 tracking-widest leading-none">Nominal (Rp)</label>
+                            <input type="number" id="field-amount" value="150000" class="w-full bg-slate-50 border-0 rounded-xl p-4 font-black text-blue-600 text-lg outline-none shadow-inner">
+                        </div>
+                        <button type="submit" id="btn-submit" class="w-full bg-slate-900 text-white font-black py-4 rounded-xl text-[10px] uppercase tracking-widest hover:bg-black transition-all">Simpan ke Cloud</button>
+                    </form>
+                </div>
+
+                <div id="panel-guest" class="bg-slate-900 p-8 rounded-[40px] text-white shadow-xl relative overflow-hidden">
+                    <h3 class="text-xl font-black uppercase italic mb-3 leading-none tracking-tight">Mode Tamu</h3>
+                    <p class="text-[11px] opacity-50 leading-relaxed mb-8">Hanya Admin yang dapat memodifikasi data. Sesi login akan terhapus otomatis demi keamanan.</p>
+                    <button onclick="toggleLoginModal(true)" class="w-full py-4 bg-white text-slate-900 font-black rounded-xl text-[10px] uppercase tracking-widest hover:bg-slate-50 transition-all active:scale-95">Masuk Admin</button>
+                </div>
+            </div>
+
+            <!-- Tabel Riwayat -->
+            <div class="lg:col-span-8 order-1 lg:order-2">
+                <div class="bg-white rounded-[40px] premium-card overflow-hidden">
+                    <div class="p-6 border-b border-slate-50 flex items-center justify-between">
+                        <h2 class="text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                            <i data-lucide="database" size="14"></i> Riwayat Transaksi
+                        </h2>
+                        <span id="display-count" class="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">0 Record</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead class="bg-slate-50/50 text-slate-400 text-[9px] uppercase font-black tracking-widest">
+                                <tr>
+                                    <th class="px-6 py-5">Periode</th>
+                                    <th class="px-6 py-5">Penyetor</th>
+                                    <th class="px-6 py-5">Status</th>
+                                    <th class="px-6 py-5">Jumlah</th>
+                                    <th class="px-6 py-5 text-center">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-body" class="divide-y divide-slate-50 text-sm">
+                                <tr><td colspan="5" class="px-8 py-20 text-center text-slate-300 font-bold uppercase italic text-[10px]">Menyinkronkan...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="modal-login" class="hide fixed inset-0 modal-overlay z-[500] flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-sm rounded-[40px] p-10 shadow-2xl animate-in zoom-in duration-300">
+            <h3 class="text-2xl font-black uppercase italic text-center mb-8 leading-none">Login Admin</h3>
+            <form id="form-login" class="space-y-4">
+                <input type="email" id="login-email" required class="w-full bg-slate-50 border-0 rounded-xl p-4 font-bold text-sm outline-none shadow-inner" placeholder="Email Admin">
+                <input type="password" id="login-password" required class="w-full bg-slate-50 border-0 rounded-xl p-4 font-bold text-sm outline-none shadow-inner" placeholder="Kata Sandi">
+                <div class="flex gap-3 pt-4">
+                    <button type="button" onclick="toggleLoginModal(false)" class="flex-1 py-4 bg-slate-100 text-slate-400 font-black rounded-xl text-[10px] uppercase">Batal</button>
+                    <button type="submit" id="btn-do-login" class="flex-1 py-4 bg-slate-900 text-white font-black rounded-xl text-[10px] uppercase shadow-xl">Masuk</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-receipt" class="hide fixed inset-0 modal-overlay z-[600] flex items-center justify-center p-4 md:p-6 print:hidden">
+        <div class="bg-white w-full max-w-[450px] rounded-[40px] overflow-hidden shadow-2xl animate-in fade-in duration-300 flex flex-col">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-white shrink-0">
+                <span class="font-black text-[9px] text-slate-300 tracking-[0.2em] uppercase italic leading-none text-center">Tinjauan Kwitansi</span>
+                <div class="flex gap-2">
+                    <button onclick="downloadReceipt()" class="p-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100" title="Unduh Gambar"><i data-lucide="download" size="20"></i></button>
+                    <button onclick="window.print()" class="p-2 bg-slate-900 text-white rounded-xl hover:bg-black" title="Cetak"><i data-lucide="printer" size="20"></i></button>
+                    <button onclick="closeReceipt()" class="p-2 bg-slate-100 text-slate-400 rounded-xl hover:bg-slate-200"><i data-lucide="x" size="20"></i></button>
+                </div>
+            </div>
+            <div id="receipt-scroll-area" class="p-6 md:p-10 overflow-auto bg-slate-50 flex justify-center">
+                <div id="receipt-modal-content" class="bg-white">
+                    <!-- Konten Kwitansi Injected -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-confirm" class="hide fixed inset-0 modal-overlay z-[2000] flex items-center justify-center p-6">
+        <div class="bg-white w-full max-w-[320px] rounded-[32px] p-8 shadow-2xl text-center">
+            <h3 class="text-lg font-black uppercase mb-2 leading-none text-slate-900">Hapus Data?</h3>
+            <p class="text-[11px] text-slate-400 font-medium mb-8 leading-relaxed">Tindakan ini bersifat permanen dari server Cloud.</p>
+            <div class="flex gap-3">
+                <button onclick="closeConfirm()" class="flex-1 py-3.5 bg-slate-100 text-slate-400 font-black rounded-xl text-[9px] uppercase">Batal</button>
+                <button id="btn-confirm-delete" class="flex-1 py-3.5 bg-red-600 text-white font-black rounded-xl text-[9px] uppercase shadow-lg">Hapus</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyDUtuXtMMh9lLEcFUrpPw19upXl2lWf2EQ",
+            authDomain: "gdi-wi-fi-net.firebaseapp.com",
+            projectId: "gdi-wi-fi-net",
+            storageBucket: "gdi-wi-fi-net.firebasestorage.app",
+            messagingSenderId: "1096457513394",
+            appId: "1:1096457513394:web:996d0936cfa60d1d7e1cab"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const appId = "gdi-wifi-ledger";
+
+        let currentData = [];
+        let isAdminActive = false;
+        let deleteId = null;
+        let isInitialLoad = true;
+
+        const formatIDR = (num) => "Rp " + new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num);
+        
+        function getTerbilang(n) {
+            if (n < 0) return "Minus " + getTerbilang(-n);
+            const bil = ["", "Satu", "Dua", "Tiga", "Empat", "Lima", "Enam", "Tujuh", "Delapan", "Sembilan", "Sepuluh", "Sebelas"];
+            let result = "";
+            if (n < 12) result = bil[n];
+            else if (n < 20) result = getTerbilang(n - 10) + " Belas";
+            else if (n < 100) result = getTerbilang(Math.floor(n / 10)) + " Puluh " + getTerbilang(n % 10);
+            else if (n < 200) result = "Seratus " + getTerbilang(n - 100);
+            else if (n < 1000) result = getTerbilang(Math.floor(n / 100)) + " Ratus " + getTerbilang(n % 100);
+            else if (n < 2000) result = "Seribu " + getTerbilang(n - 1000);
+            else if (n < 1000000) result = getTerbilang(Math.floor(n / 1000)) + " Ribu " + getTerbilang(n % 1000);
+            else if (n < 1000000000) result = getTerbilang(Math.floor(n / 1000000)) + " Juta " + getTerbilang(n % 1000000);
+            else if (n < 1000000000000) result = getTerbilang(Math.floor(n / 1000000000)) + " Miliar " + getTerbilang(n % 1000000000);
+            return result.replace(/\s+/g, ' ').trim();
+        }
+
+        function showToast(msg, type = 'info') {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-message').textContent = msg;
+            document.getElementById('toast-icon').className = `p-2 rounded-lg ${type === 'error' ? 'bg-red-500' : 'bg-blue-500'} text-white`;
+            toast.classList.remove('hide');
+            setTimeout(() => toast.classList.add('hide'), 4000);
+        }
+
+        // --- SISTEM AUTENTIKASI KETAT (FORCE MANUAL LOGIN) ---
+        async function initSecurity() {
+            try {
+                // Gunakan SESSION agar sesi terhapus saat tab/browser ditutup
+                await auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
+
+                auth.onAuthStateChanged(async (user) => {
+                    // Jika ini adalah load pertama (refresh), paksa Admin keluar
+                    if (isInitialLoad) {
+                        isInitialLoad = false;
+                        if (user && !user.isAnonymous) {
+                            await auth.signOut();
+                            return; // Listener akan terpanggil lagi setelah logout
+                        }
+                    }
+
+                    if (user) {
+                        isAdminActive = !user.isAnonymous;
+                        updateUI(isAdminActive);
+                        syncData();
+                        hideLoading();
+                    } else {
+                        // Secara otomatis masuk sebagai tamu (Anonim)
+                        auth.signInAnonymously().catch(() => { 
+                            syncData(); updateUI(false); hideLoading(); 
+                        });
+                    }
+                });
+            } catch (err) { hideLoading(); }
+        }
+
+        function updateUI(admin) {
+            document.getElementById('panel-admin').classList.toggle('hide', !admin);
+            document.getElementById('panel-guest').classList.toggle('hide', admin);
+            document.getElementById('btn-login-open').classList.toggle('hide', admin);
+            document.getElementById('btn-logout-trigger').classList.toggle('hide', !admin);
+            document.getElementById('badge-admin').classList.toggle('hide', !admin);
+            document.getElementById('badge-guest').classList.toggle('hide', admin);
+            lucide.createIcons();
+        }
+
+        function toggleLoginModal(show) { document.getElementById('modal-login').classList.toggle('hide', !show); }
+        function hideLoading() { 
+            const overlay = document.getElementById('loading-overlay');
+            overlay.style.opacity = '0';
+            setTimeout(() => overlay.classList.add('hide'), 500); 
+        }
+
+        function syncData() {
+            const col = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('payments');
+            col.onSnapshot((snapshot) => {
+                currentData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+                                .sort((a,b) => new Date(b.date) - new Date(a.date));
+                renderTable();
+                document.getElementById('display-total').textContent = formatIDR(currentData.reduce((s, i) => s + (Number(i.amount) || 0), 0));
+                document.getElementById('display-count').textContent = currentData.length + " Record";
+            }, (err) => {
+                document.getElementById('table-body').innerHTML = `<tr><td colspan="5" class="px-8 py-20 text-center text-red-400 font-bold italic text-[10px]">Akses Dibatasi. Silakan Masuk.</td></tr>`;
+            });
+        }
+
+        function renderTable() {
+            const container = document.getElementById('table-body');
+            if (currentData.length === 0) {
+                container.innerHTML = `<tr><td colspan="5" class="px-8 py-20 text-center text-slate-300 font-bold uppercase italic text-[10px] tracking-widest">Belum ada data</td></tr>`;
+                return;
+            }
+            container.innerHTML = currentData.map(p => `
+                <tr class="hover:bg-slate-50 transition-all border-b border-slate-50">
+                    <td class="px-6 py-6"><p class="font-black text-slate-900 leading-none text-xs tracking-tight">${p.month} ${p.year}</p><p class="text-[9px] text-blue-500 font-bold mt-1.5 uppercase tracking-widest leading-none">${p.date}</p></td>
+                    <td class="px-6 py-6 font-bold text-slate-600 italic border-l-2 border-slate-100 pl-4 text-xs">${p.payer}</td>
+                    <td class="px-6 py-6">
+                        <span class="text-[9px] font-black uppercase px-2 py-1 rounded-md ${p.status === 'Lunas' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}">
+                            ${p.status || 'Lunas'}
+                        </span>
+                    </td>
+                    <td class="px-6 py-6 font-black text-green-600 text-xs tracking-tighter">${formatIDR(p.amount)}</td>
+                    <td class="px-6 py-6 text-center">
+                        <div class="flex justify-center gap-3">
+                            <button onclick="viewReceipt('${p.id}')" class="w-9 h-9 flex items-center justify-center bg-white border border-slate-200 text-blue-500 rounded-lg active:scale-90 shadow-sm transition-all"><i data-lucide="receipt" size="16"></i></button>
+                            ${isAdminActive ? `<button onclick="openConfirm('${p.id}')" class="w-9 h-9 flex items-center justify-center bg-white border border-slate-200 text-red-500 rounded-lg active:scale-90 shadow-sm transition-all"><i data-lucide="trash-2" size="16"></i></button>` : ''}
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function openConfirm(id) { deleteId = id; document.getElementById('modal-confirm').classList.remove('hide'); }
+        function closeConfirm() { deleteId = null; document.getElementById('modal-confirm').classList.add('hide'); }
+        
+        document.getElementById('btn-confirm-delete').onclick = async () => {
+            if (!deleteId || !isAdminActive) return;
+            try {
+                await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('payments').doc(deleteId).delete();
+                showToast("Data Berhasil Dihapus."); closeConfirm();
+            } catch (err) { showToast("Gagal menghapus data.", "error"); }
+        };
+
+        document.getElementById('btn-logout-trigger').onclick = async () => { await auth.signOut(); showToast("Berhasil Keluar."); };
+
+        document.getElementById('form-payment').onsubmit = async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btn-submit');
+            btn.disabled = true; btn.textContent = "Mengirim...";
+            const data = {
+                payer: document.getElementById('field-payer').value,
+                month: document.getElementById('field-month').value,
+                year: document.getElementById('field-year').value,
+                status: document.getElementById('field-status').value,
+                amount: Number(document.getElementById('field-amount').value),
+                date: new Date().toISOString().split('T')[0],
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            try {
+                await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('payments').add(data);
+                e.target.reset(); document.getElementById('field-year').value = new Date().getFullYear();
+                showToast("Data Berhasil Disimpan.");
+            } catch (err) { showToast("Gagal menyimpan data.", "error"); }
+            btn.disabled = false; btn.textContent = "Simpan ke Cloud";
+            lucide.createIcons();
+        };
+
+        document.getElementById('form-login').onsubmit = async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btn-do-login');
+            btn.disabled = true;
+            try {
+                await auth.signInWithEmailAndPassword(document.getElementById('login-email').value, document.getElementById('login-password').value);
+                showToast("Selamat Datang Admin."); toggleLoginModal(false);
+            } catch (err) { showToast("Identitas Salah.", "error"); }
+            btn.disabled = false;
+        };
+
+        document.getElementById('btn-login-open').onclick = () => toggleLoginModal(true);
+
+        function viewReceipt(id) {
+            const p = currentData.find(x => x.id === id);
+            if (!p) return;
+            const statusColor = p.status === 'Belum Lunas' ? 'text-red-600' : 'text-slate-900';
+            
+            document.getElementById('receipt-modal-content').innerHTML = `
+                <div id="capture-area">
+                    <div class="text-center mb-8">
+                        <p class="font-black text-sm uppercase tracking-tight mb-1 leading-tight px-4">Iuran Bersama Wifi Ferdi & Jho/Joventaluk</p>
+                        <p class="text-[9px] font-bold uppercase tracking-[0.1em] text-slate-400">Bengkayang Digital Ledger</p>
+                        <p class="text-[7.5px] font-medium text-slate-500 leading-tight mt-1">Griya Damai Indah Blok B Nomor 8</p>
+                        <p class="text-[7.5px] font-medium text-slate-500 leading-tight italic">WA Jho: 082149335323</p>
+                    </div>
+
+                    <div class="space-y-6 mb-8 border-t border-b border-dashed border-slate-200 py-8">
+                        <div class="flex flex-col">
+                            <span class="text-[8px] font-black text-slate-300 uppercase leading-none mb-2 tracking-widest leading-none">Diterima Dari</span>
+                            <div class="relative">
+                                <span class="text-xl font-black uppercase text-slate-900 tracking-tight block">${p.payer}</span>
+                                <div class="w-full h-[2px] bg-slate-900 mt-1"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex flex-col">
+                            <span class="text-[8px] font-black text-slate-300 uppercase leading-none mb-2 tracking-widest leading-none">Terbilang (Lengkap)</span>
+                            <span class="text-[11px] font-bold italic text-slate-700 leading-tight block"># ${getTerbilang(p.amount)} Rupiah #</span>
+                        </div>
+
+                        <div class="flex flex-col">
+                            <span class="text-[8px] font-black text-slate-300 uppercase leading-none mb-2 tracking-widest leading-none">Status & Keterangan</span>
+                            <div class="flex flex-col gap-1">
+                                <span class="text-[12px] font-black leading-none uppercase ${statusColor}">${p.status || 'Lunas'}</span>
+                                <span class="text-[10px] font-medium text-slate-500 uppercase tracking-tighter italic">Pembayaran Iuran: ${p.month} ${p.year}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900 text-white p-6 rounded-2xl text-center mb-10 border-b-[8px] border-slate-700">
+                        <p class="text-[8px] font-black uppercase opacity-50 mb-2 tracking-widest leading-none">TOTAL PEMBAYARAN (NET)</p>
+                        <p class="text-3xl font-black tracking-tighter leading-none">${formatIDR(p.amount)}</p>
+                    </div>
+
+                    <div class="text-center">
+                        <p class="text-[10px] font-black text-slate-400 mb-6 uppercase tracking-widest leading-none">${new Date(p.date).toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'})}</p>
+                        <div class="h-20 flex items-center justify-center">
+                            <p class="text-6xl cursive text-slate-900 font-bold transform -rotate-2 select-none leading-none">Ferdi</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('modal-receipt').classList.remove('hide');
+            lucide.createIcons();
+        }
+
+        async function downloadReceipt() {
+            const area = document.getElementById('capture-area');
+            const btn = event.currentTarget;
+            btn.disabled = true;
+            try {
+                const canvas = await html2canvas(area, { 
+                    scale: 3, 
+                    backgroundColor: "#ffffff", 
+                    width: 380,
+                    logging: false,
+                    useCORS: true
+                });
+                const link = document.createElement('a');
+                link.download = `Kwitansi-Wifi-${new Date().getTime()}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                showToast("Berhasil diunduh.");
+            } catch (err) { showToast("Gagal mengunduh gambar.", "error"); }
+            btn.disabled = false;
+        }
+
+        function closeReceipt() { document.getElementById('modal-receipt').classList.add('hide'); }
+
+        window.onload = () => {
+            document.getElementById('field-year').value = new Date().getFullYear();
+            initSecurity();
+        };
+    </script>
 </body>
 </html>
