@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Ledger Iuran Wifi - Premium Tracking</title>
+    <title>Ledger Iuran Wifi - Profil Jho Terupdate</title>
     
     <!-- Framework & Fonts -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -36,7 +36,6 @@
 
         .hide { display: none !important; }
 
-        /* --- OPTIMASI CETAK THERMAL 58mm --- */
         @media print {
             @page { size: 58mm auto; margin: 0; }
             body { background: white; margin: 0; padding: 0; width: 58mm; }
@@ -87,245 +86,199 @@
             background: #f8fafc;
         }
 
+        .bill-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .bill-card:active { transform: scale(0.95); }
+
         ::-webkit-scrollbar { width: 0; height: 0; }
     </style>
 </head>
-<body class="bg-[#f8fafc] text-slate-900 min-h-screen">
+<body class="bg-[#f8fafc] text-slate-900 min-h-screen pb-10">
 
     <!-- Notifikasi Toast -->
     <div id="toast" class="hide fixed top-4 left-1/2 -translate-x-1/2 z-[1000] w-[90%] max-w-[350px] transition-all">
         <div class="bg-slate-900 text-white p-4 rounded-2xl shadow-2xl flex items-center gap-3 border border-white/10">
-            <div id="toast-icon" class="p-2 rounded-lg bg-blue-500 text-white"><i data-lucide="info" size="16"></i></div>
-            <p id="toast-message" class="text-[10px] font-bold uppercase tracking-widest flex-1"></p>
+            <div id="toast-icon" class="p-2 rounded-lg bg-blue-500 text-white text-white"><i data-lucide="info" size="16"></i></div>
+            <p id="toast-message" class="text-[10px] font-bold uppercase tracking-widest flex-1 text-white"></p>
         </div>
     </div>
 
     <!-- Layar Pemuatan -->
     <div id="loading-overlay">
         <div class="w-10 h-10 border-4 border-slate-100 border-t-slate-900 rounded-full animate-spin"></div>
-        <p class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mt-4 px-6 text-center">Menyiapkan Dashboard...</p>
+        <p class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mt-4 px-6 text-center text-slate-400">Menyinkronkan Iuran...</p>
     </div>
 
-    <div class="max-w-6xl mx-auto p-3 md:p-8">
+    <div class="max-w-4xl mx-auto p-3 md:p-8 text-slate-900">
         <!-- Header Utama -->
         <header class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-[28px] shadow-sm border border-slate-100">
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-3 text-slate-900">
                 <div class="bg-slate-900 p-2.5 rounded-xl text-white transform -rotate-3"><i data-lucide="wifi" size="22"></i></div>
                 <div>
                     <h1 class="text-lg font-extrabold tracking-tighter uppercase leading-none">Ledger Wifi</h1>
-                    <div id="badge-admin" class="hide text-[7px] font-black text-blue-600 uppercase bg-blue-50 px-2 py-0.5 rounded border border-blue-100 mt-1 inline-block">Sesi Admin</div>
-                    <div id="badge-guest" class="text-[7px] font-black text-slate-400 uppercase bg-slate-50 px-2 py-0.5 rounded border border-slate-100 mt-1 inline-block">Mode Tamu</div>
+                    <div id="badge-admin" class="hide text-[7px] font-black text-blue-600 uppercase bg-blue-50 px-2 py-0.5 rounded border border-blue-100 mt-1 inline-block tracking-widest">Sesi Admin</div>
+                    <div id="badge-guest" class="text-[7px] font-black text-slate-400 uppercase bg-slate-50 px-2 py-0.5 rounded border border-slate-100 mt-1 inline-block tracking-widest">Mode Tamu</div>
                 </div>
             </div>
 
-            <div class="flex items-center justify-between md:justify-end gap-3 w-full md:w-auto">
+            <div class="flex items-center justify-between md:justify-end gap-3 w-full md:w-auto text-slate-900">
                 <button id="btn-login-open" class="flex-1 md:flex-none px-5 py-2.5 bg-slate-900 text-white rounded-xl text-[9px] font-black uppercase tracking-widest active:scale-95">Masuk</button>
-                <button id="btn-logout-trigger" class="hide px-5 py-2.5 bg-red-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest active:scale-95">Keluar</button>
+                <button id="btn-logout-trigger" class="hide px-5 py-2.5 bg-red-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest active:scale-95 text-white text-white">Keluar</button>
                 <div class="bg-slate-50 px-4 py-2 rounded-xl border border-slate-200 text-center min-w-[120px]">
-                    <p class="text-[7px] text-slate-400 font-black uppercase mb-0.5 leading-none">Total Kas</p>
+                    <p class="text-[7px] text-slate-400 font-black uppercase mb-0.5 leading-none tracking-widest">Total Kas</p>
                     <p id="display-total" class="text-sm font-black text-blue-600 leading-none">Rp 0,00</p>
                 </div>
             </div>
         </header>
 
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <!-- Sidebar -->
-            <div class="lg:col-span-4 space-y-6 order-2 lg:order-1">
-                <!-- Form Input Admin -->
-                <div id="panel-admin" class="hide bg-white p-6 rounded-[32px] premium-card sticky top-6 border-b-[8px] border-slate-100">
-                    <h2 class="text-[9px] font-black text-slate-900 uppercase tracking-widest mb-6 flex items-center gap-2">
-                        <i data-lucide="plus-circle" size="14"></i> Catat Iuran Baru
-                    </h2>
-                    <form id="form-payment" class="space-y-4">
-                        <div class="relative">
-                            <label class="text-[8px] font-black text-slate-400 uppercase ml-1 tracking-widest leading-none">Penyetor</label>
-                            <select id="field-payer" class="w-full bg-slate-50 border-0 rounded-xl p-3.5 font-bold text-xs outline-none shadow-inner appearance-none mt-1">
-                                <option value="Jho/Joventaluk">Jho/Joventaluk (B.8)</option>
-                                <option value="Ferdi">Ferdi (A.9)</option>
-                            </select>
-                            <div class="custom-select-arrow text-slate-400 pt-3"><i data-lucide="chevron-down" size="14"></i></div>
-                        </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div class="relative">
-                                <label class="text-[8px] font-black text-slate-400 uppercase ml-1 tracking-widest leading-none">Bulan</label>
-                                <select id="field-month" class="w-full bg-slate-50 border-0 rounded-xl p-3.5 font-bold text-xs outline-none shadow-inner appearance-none mt-1">
-                                    <option>Januari</option><option>Februari</option><option>Maret</option><option>April</option><option>Mei</option><option>Juni</option><option>Juli</option><option>Agustus</option><option>September</option><option>Oktober</option><option>November</option><option>Desember</option>
-                                </select>
-                                <div class="custom-select-arrow text-slate-400 pt-3"><i data-lucide="chevron-down" size="14"></i></div>
-                            </div>
-                            <div>
-                                <label class="text-[8px] font-black text-slate-400 uppercase ml-1 tracking-widest leading-none">Tahun</label>
-                                <input type="number" id="field-year" class="w-full bg-slate-50 border-0 rounded-xl p-3.5 font-bold text-xs outline-none shadow-inner mt-1">
-                            </div>
-                        </div>
-                        <div class="relative">
-                            <label class="text-[8px] font-black text-slate-400 uppercase ml-1 tracking-widest leading-none">Status</label>
-                            <select id="field-status" class="w-full bg-slate-50 border-0 rounded-xl p-3.5 font-bold text-xs outline-none shadow-inner appearance-none mt-1" onchange="toggleLunasFields('add')">
-                                <option value="Lunas">Lunas</option>
-                                <option value="Belum Lunas">Belum Lunas</option>
-                            </select>
-                            <div class="custom-select-arrow text-slate-400 pt-3"><i data-lucide="chevron-down" size="14"></i></div>
-                        </div>
-                        
-                        <div id="lunas-detail-add" class="space-y-3">
-                            <input type="datetime-local" id="field-pay-date" class="w-full bg-slate-50 border-0 rounded-xl p-3.5 font-bold text-xs outline-none shadow-inner">
-                            <textarea id="field-notes" placeholder="Catatan (opsional)" class="w-full bg-slate-50 border-0 rounded-xl p-3.5 font-medium text-xs outline-none shadow-inner resize-none h-16"></textarea>
-                        </div>
-
-                        <div>
-                            <label class="text-[8px] font-black text-blue-600 uppercase ml-1 tracking-widest leading-none text-white">Nominal (Rp)</label>
-                            <input type="number" id="field-amount" value="150000" class="w-full bg-slate-50 border-0 rounded-xl p-3.5 font-black text-blue-600 text-sm outline-none shadow-inner mt-1">
-                        </div>
-                        
-                        <div>
-                            <input type="file" id="field-photo" accept="image/*" class="hide" onchange="processImage(this, 'add')">
-                            <button type="button" onclick="document.getElementById('field-photo').click()" class="w-full py-3 bg-blue-50 text-blue-600 border border-blue-100 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95">
-                                <i data-lucide="camera" size="16"></i> Lampirkan Foto
-                            </button>
-                            <div id="add-img-preview-container" class="hide mt-3 relative">
-                                <img id="add-img-preview" class="img-preview" src="">
-                                <button type="button" onclick="removeImage('add')" class="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full shadow-lg"><i data-lucide="x" size="10"></i></button>
-                            </div>
-                        </div>
-                        <button type="submit" id="btn-submit" class="w-full bg-slate-900 text-white font-black py-4 rounded-2xl text-[9px] uppercase tracking-widest hover:bg-black transition-all shadow-lg border-b-4 border-slate-700">Simpan Record</button>
-                    </form>
+        <div class="space-y-6">
+            <!-- Filter Utama Tahun & Legenda Status -->
+            <div class="bg-white p-5 md:p-6 rounded-[28px] premium-card space-y-5 text-slate-900">
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-4 text-slate-900">
+                    <div class="flex items-center gap-3 self-start sm:self-center">
+                        <div class="w-1.5 h-6 bg-blue-600 rounded-full shadow-lg shadow-blue-100"></div>
+                        <h2 class="text-[10px] font-black uppercase tracking-widest leading-none">Manajemen Penagihan</h2>
+                    </div>
+                    <div class="relative w-full sm:w-48 text-slate-900">
+                        <select id="filter-year" class="w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-3 text-[11px] font-black uppercase outline-none appearance-none shadow-inner cursor-pointer" onchange="renderBillingGrid()">
+                        </select>
+                        <div class="custom-select-arrow text-slate-400 pt-1"><i data-lucide="calendar" size="14"></i></div>
+                    </div>
                 </div>
 
-                <div id="panel-guest" class="bg-slate-900 p-8 rounded-[32px] text-white shadow-xl relative overflow-hidden text-center border-b-8 border-slate-800">
-                    <h3 class="text-xl font-black uppercase italic mb-2 tracking-tighter">Akses Tamu</h3>
-                    <p class="text-[10px] opacity-50 leading-relaxed mb-8 px-2">Anda hanya dapat melihat data. Login Admin diperlukan untuk modifikasi.</p>
-                    <button onclick="toggleLoginModal(true)" class="w-full py-4 bg-white text-slate-900 font-black rounded-2xl text-[9px] uppercase tracking-widest active:scale-95 shadow-xl">Login Admin</button>
+                <div class="flex flex-wrap items-center gap-4 pt-4 border-t border-slate-50">
+                    <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest w-full mb-1 opacity-60 font-black">Warna Status Cerdas:</p>
+                    <div class="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100 text-slate-900">
+                        <div class="w-2 h-2 bg-slate-300 rounded-full"></div>
+                        <span class="text-[9px] font-bold text-slate-500 uppercase tracking-tight">Belum Tercatat</span>
+                    </div>
+                    <div class="flex items-center gap-2 bg-orange-50 px-3 py-1.5 rounded-full border border-orange-100 text-slate-900">
+                        <div class="w-2 h-2 bg-orange-500 rounded-full"></div>
+                        <span class="text-[9px] font-bold text-orange-600 uppercase tracking-tight font-bold">Belum Lunas</span>
+                    </div>
+                    <div class="flex items-center gap-2 bg-green-50 px-3 py-1.5 rounded-full border border-green-100 text-slate-900">
+                        <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span class="text-[9px] font-bold text-green-600 uppercase tracking-tight font-bold text-green-600 text-green-600">Sudah Lunas</span>
+                    </div>
                 </div>
             </div>
 
-            <!-- Riwayat dengan Filter Lengkap -->
-            <div class="lg:col-span-8 order-1 lg:order-2">
-                <div class="bg-white rounded-[32px] premium-card overflow-hidden">
-                    <!-- Filter Section -->
-                    <div class="p-4 border-b border-slate-50 bg-slate-50/20">
-                        <div class="flex items-center gap-2 mb-4 px-1">
-                            <div class="w-1.5 h-5 bg-blue-600 rounded-full"></div>
-                            <h2 class="text-[9px] font-black uppercase tracking-widest">Penyaringan Riwayat</h2>
-                        </div>
-                        <div class="grid grid-cols-3 gap-2">
-                            <!-- Filter Bulan -->
-                            <div class="relative">
-                                <select id="filter-month" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-3 text-[8px] font-black uppercase outline-none appearance-none shadow-sm" onchange="renderTable()">
-                                    <option value="Semua">Semua Bln</option>
-                                    <option>Januari</option><option>Februari</option><option>Maret</option><option>April</option><option>Mei</option><option>Juni</option><option>Juli</option><option>Agustus</option><option>September</option><option>Oktober</option><option>November</option><option>Desember</option>
-                                </select>
-                                <div class="custom-select-arrow text-slate-400 pr-1"><i data-lucide="chevron-down" size="10"></i></div>
-                            </div>
-                            <!-- Filter Tahun -->
-                            <div class="relative">
-                                <select id="filter-year" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-3 text-[8px] font-black uppercase outline-none appearance-none shadow-sm" onchange="renderTable()">
-                                    <option value="Semua">Semua Thn</option>
-                                </select>
-                                <div class="custom-select-arrow text-slate-400 pr-1"><i data-lucide="chevron-down" size="10"></i></div>
-                            </div>
-                            <!-- Filter Status (BARU) -->
-                            <div class="relative">
-                                <select id="filter-status" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-3 text-[8px] font-black uppercase outline-none appearance-none shadow-sm text-blue-600" onchange="renderTable()">
-                                    <option value="Semua">Status (Semua)</option>
-                                    <option value="Lunas">Lunas</option>
-                                    <option value="Belum Lunas">Blm Lunas</option>
-                                </select>
-                                <div class="custom-select-arrow text-blue-400 pr-1"><i data-lucide="chevron-down" size="10"></i></div>
-                            </div>
+            <!-- PROFIL JHO (Update Foto Resmi & Tanpa Centang Biru) -->
+            <div class="bg-white p-6 rounded-[32px] premium-card overflow-hidden border-l-[8px] border-blue-600 animate-in fade-in slide-in-from-left duration-700 text-slate-900">
+                <div class="flex items-center gap-5">
+                    <div class="relative shrink-0 text-slate-900">
+                        <div class="w-20 h-20 rounded-full border-4 border-white shadow-xl overflow-hidden bg-slate-100 ring-2 ring-blue-50">
+                            <!-- Foto asli Jho memancing -->
+                            <img src="https://i.ibb.co.com/xSXYj1rg/Screenshot-38.png" 
+                                 alt="Profile Jho" 
+                                 id="profile-pic-jho"
+                                 class="w-full h-full object-cover"
+                                 onerror="this.src='https://ui-avatars.com/api/?name=Jho+Joventaluk&background=0D8ABC&color=fff'">
                         </div>
                     </div>
-
-                    <!-- Container Data (No-Scroll Cards) -->
-                    <div id="history-container" class="divide-y divide-slate-50">
-                        <div class="p-20 text-center text-slate-300 font-bold uppercase italic text-[10px] tracking-widest">Menghubungkan...</div>
+                    <div class="flex-1 min-w-0 text-slate-900">
+                        <p class="text-[8px] font-black text-blue-600 uppercase tracking-widest leading-none mb-1">Inisiator Iuran</p>
+                        <h3 class="text-lg font-black text-slate-900 truncate leading-tight uppercase tracking-tighter">Jho / Joventaluk</h3>
+                        <p class="text-[9px] text-slate-400 font-medium leading-tight truncate mt-1">Griya Damai Indah Blok B Nomor 8</p>
+                        <div class="flex gap-2 mt-3 text-slate-900">
+                            <a href="https://wa.me/6282149335323" target="_blank" class="flex items-center gap-1.5 bg-green-50 text-green-600 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-green-100 active:scale-95 transition-all text-green-600">
+                                <i data-lucide="message-circle" size="12"></i> WhatsApp
+                            </a>
+                        </div>
                     </div>
                 </div>
+            </div>
+
+            <!-- Billing Grid -->
+            <div id="billing-grid" class="animate-in fade-in slide-in-from-bottom duration-700">
+                <!-- Diisi oleh JS -->
+            </div>
+
+            <div id="panel-guest-info" class="p-8 rounded-[40px] bg-slate-900 text-white shadow-xl text-center border-b-8 border-slate-800 animate-in fade-in duration-1000 text-slate-900">
+                <h3 class="text-xl font-black uppercase italic mb-2 tracking-tight text-white text-white">Status Pelunasan</h3>
+                <p class="text-[10px] opacity-40 leading-relaxed mb-8 px-4 text-white text-white">Ketuk kotak bulan yang berwarna hijau atau oranye untuk melihat rincian serta bukti penyerahan iuran Jho.</p>
+                <button onclick="toggleLoginModal(true)" class="w-full max-w-xs py-4 bg-white text-slate-900 font-black rounded-2xl text-[9px] uppercase tracking-widest active:scale-95 shadow-xl text-slate-900 text-slate-900">Masuk Admin</button>
+            </div>
+
+            <div id="panel-admin-note" class="hide p-6 bg-blue-50 border border-blue-100 rounded-[32px] text-blue-700 text-center animate-in zoom-in duration-500 text-slate-900">
+                <p class="text-[10px] font-black uppercase tracking-[0.2em] mb-1">Otoritas Admin Aktif</p>
+                <p class="text-[11px] font-medium opacity-70 leading-none">Klik pada kotak bulan manapun untuk melakukan pembaruan data iuran Jho.</p>
             </div>
         </div>
     </div>
 
     <!-- Modals -->
-    <div id="modal-view-proof" class="hide fixed inset-0 modal-overlay z-[700] flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-sm rounded-[32px] overflow-hidden shadow-2xl animate-in zoom-in duration-300">
-            <div class="p-4 flex justify-between items-center border-b border-slate-100 bg-white">
-                <span class="text-[9px] font-black uppercase tracking-widest text-slate-400">Arsip Foto Bukti</span>
-                <button onclick="document.getElementById('modal-view-proof').classList.add('hide')" class="p-1.5 bg-slate-50 text-slate-400 rounded-lg"><i data-lucide="x" size="18"></i></button>
-            </div>
-            <div class="p-5 text-center bg-slate-50">
-                <img id="view-proof-img" class="w-full h-auto rounded-2xl shadow-sm border border-slate-200 mx-auto" src="">
-            </div>
-        </div>
-    </div>
+    <div id="modal-edit" class="hide fixed inset-0 modal-overlay z-[500] flex items-center justify-center p-4 text-slate-900">
+        <div class="bg-white w-full max-w-sm rounded-[40px] p-8 shadow-2xl animate-in zoom-in duration-300 overflow-y-auto max-h-[85vh] border-b-[10px] border-slate-900 text-slate-900">
+            <h3 id="edit-modal-title" class="text-xl font-black uppercase italic text-center mb-6 tracking-tighter leading-none text-slate-900">Update Iuran Jho</h3>
+            <form id="form-edit" class="space-y-4">
+                <input type="hidden" id="edit-id">
+                <input type="hidden" id="edit-month">
+                <input type="hidden" id="edit-year">
 
-    <div id="modal-login" class="hide fixed inset-0 modal-overlay z-[500] flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-sm rounded-[32px] p-10 shadow-2xl animate-in zoom-in duration-300 border-b-[10px] border-slate-900">
-            <h3 class="text-xl font-black uppercase italic text-center mb-6 leading-none text-slate-900 tracking-tighter">Login Admin</h3>
-            <form id="form-login" class="space-y-4 text-slate-900">
-                <input type="email" id="login-email" required class="w-full bg-slate-50 border-0 rounded-2xl p-4 font-bold text-sm outline-none shadow-inner" placeholder="E-mail">
-                <input type="password" id="login-password" required class="w-full bg-slate-50 border-0 rounded-2xl p-4 font-bold text-sm outline-none shadow-inner" placeholder="Password">
-                <div class="flex gap-3 pt-4">
-                    <button type="button" onclick="toggleLoginModal(false)" class="flex-1 py-4 bg-slate-100 text-slate-400 font-black rounded-2xl text-[9px] uppercase tracking-widest">Batal</button>
-                    <button type="submit" id="btn-do-login" class="flex-1 py-4 bg-slate-900 text-white font-black rounded-2xl text-[9px] uppercase shadow-xl">Masuk</button>
+                <div class="relative">
+                    <label class="text-[8px] font-black text-slate-400 uppercase ml-1 tracking-widest text-slate-400">Status Pelunasan</label>
+                    <select id="edit-status" class="w-full bg-slate-50 border-0 rounded-xl p-3.5 font-bold text-xs outline-none shadow-inner appearance-none mt-1 text-slate-900" onchange="toggleLunasFields('edit')">
+                        <option value="Belum Lunas">Belum Lunas</option>
+                        <option value="Lunas">Lunas</option>
+                    </select>
+                    <div class="custom-select-arrow text-slate-400 pt-3 text-slate-900"><i data-lucide="chevron-down" size="14"></i></div>
                 </div>
+
+                <div id="lunas-detail-edit" class="space-y-3">
+                    <input type="datetime-local" id="edit-pay-date" class="w-full bg-slate-50 border-0 rounded-xl p-3.5 font-bold text-xs outline-none shadow-inner text-slate-900 text-slate-900 text-slate-900">
+                    <textarea id="edit-notes" placeholder="Catatan (opsional)..." class="w-full bg-slate-50 border-0 rounded-xl p-3.5 font-medium text-xs outline-none shadow-inner resize-none h-16 text-slate-900 text-slate-900 text-slate-900"></textarea>
+                </div>
+
+                <div>
+                    <label class="text-[8px] font-black text-blue-600 uppercase ml-1 tracking-widest text-blue-600">Nominal (Rp)</label>
+                    <input type="number" id="edit-amount" value="150000" class="w-full bg-slate-50 border-0 rounded-xl p-3.5 font-black text-blue-600 text-sm outline-none shadow-inner mt-1 text-blue-600 text-blue-600 text-blue-600">
+                </div>
+
+                <div class="space-y-2">
+                    <input type="file" id="edit-photo" accept="image/*" class="hide text-slate-900" onchange="processImage(this, 'edit')">
+                    <button type="button" onclick="document.getElementById('edit-photo').click()" class="w-full py-3 bg-blue-50 text-blue-600 border border-blue-100 rounded-xl text-[9px] font-black uppercase flex items-center justify-center gap-2 text-blue-600 text-blue-600">
+                        <i data-lucide="camera" size="14"></i> Lampirkan Foto
+                    </button>
+                    <div id="edit-img-preview-container" class="hide mt-3 relative text-center">
+                        <img id="edit-img-preview" class="img-preview shadow-md mx-auto" src="">
+                        <button type="button" onclick="removeImage('edit')" class="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full text-white text-white"><i data-lucide="x" size="10"></i></button>
+                    </div>
+                </div>
+
+                <div class="flex gap-3 pt-4 text-slate-900">
+                    <button type="button" onclick="closeEditModal()" class="flex-1 py-4 bg-slate-100 text-slate-400 font-black rounded-2xl text-[9px] uppercase tracking-widest text-slate-400 text-slate-400">Batal</button>
+                    <button type="submit" id="btn-do-update" class="flex-1 py-4 bg-slate-900 text-white font-black rounded-2xl text-[9px] uppercase shadow-xl active:scale-95 text-white text-white">Simpan</button>
+                </div>
+                <button type="button" id="btn-delete-record" class="hide w-full py-3 text-red-400 text-[8px] font-black uppercase tracking-[0.3em] opacity-40 hover:opacity-100 transition-all mt-2 text-red-400 text-red-400">Hapus Record</button>
             </form>
         </div>
     </div>
 
-    <div id="modal-edit" class="hide fixed inset-0 modal-overlay z-[500] flex items-center justify-center p-4 text-slate-900">
-        <div class="bg-white w-full max-w-sm rounded-[32px] p-8 shadow-2xl animate-in zoom-in duration-300 overflow-y-auto max-h-[85vh] border-b-[8px] border-blue-600">
-            <h3 class="text-xl font-black uppercase italic text-center mb-6 leading-none text-slate-900">Ubah Record</h3>
-            <form id="form-edit" class="space-y-4">
-                <input type="hidden" id="edit-id">
-                <div class="relative">
-                    <label class="text-[8px] font-black text-slate-400 uppercase ml-1 tracking-widest text-white">Penyetor</label>
-                    <select id="edit-payer" class="w-full bg-slate-50 border-0 rounded-xl p-3 font-bold text-xs outline-none shadow-inner appearance-none mt-1">
-                        <option value="Jho/Joventaluk">Jho/Joventaluk (B.8)</option>
-                        <option value="Ferdi">Ferdi (A.9)</option>
-                    </select>
-                    <div class="custom-select-arrow text-slate-400 pt-3"><i data-lucide="chevron-down" size="14"></i></div>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div class="relative text-white">
-                        <label class="text-[8px] font-black text-slate-400 uppercase ml-1 tracking-widest text-white">Bulan</label>
-                        <select id="edit-month" class="w-full bg-slate-50 border-0 rounded-xl p-3 font-bold text-xs outline-none shadow-inner appearance-none mt-1">
-                            <option>Januari</option><option>Februari</option><option>Maret</option><option>April</option><option>Mei</option><option>Juni</option><option>Juli</option><option>Agustus</option><option>September</option><option>Oktober</option><option>November</option><option>Desember</option>
-                        </select>
-                        <div class="custom-select-arrow text-slate-400 pt-3"><i data-lucide="chevron-down" size="14"></i></div>
-                    </div>
-                    <div>
-                        <label class="text-[8px] font-black text-slate-400 uppercase ml-1 tracking-widest text-white">Tahun</label>
-                        <input type="number" id="edit-year" class="w-full bg-slate-50 border-0 rounded-xl p-3 font-bold text-xs outline-none shadow-inner mt-1">
-                    </div>
-                </div>
-                <div class="relative">
-                    <label class="text-[8px] font-black text-slate-400 uppercase ml-1 tracking-widest text-white">Status</label>
-                    <select id="edit-status" class="w-full bg-slate-50 border-0 rounded-xl p-3 font-bold text-xs outline-none shadow-inner appearance-none mt-1" onchange="toggleLunasFields('edit')">
-                        <option value="Lunas">Lunas</option>
-                        <option value="Belum Lunas">Belum Lunas</option>
-                    </select>
-                    <div class="custom-select-arrow text-slate-400 pt-3"><i data-lucide="chevron-down" size="14"></i></div>
-                </div>
-                <div id="lunas-detail-edit" class="space-y-3">
-                    <input type="datetime-local" id="edit-pay-date" class="w-full bg-slate-50 border-0 rounded-xl p-3 font-bold text-xs outline-none shadow-inner">
-                    <textarea id="edit-notes" placeholder="Catatan tambahan..." class="w-full bg-slate-50 border-0 rounded-xl p-3 font-medium text-xs outline-none shadow-inner resize-none h-16"></textarea>
-                </div>
-                <div>
-                    <label class="text-[8px] font-black text-blue-600 uppercase ml-1 tracking-widest text-white">Nominal (Rp)</label>
-                    <input type="number" id="edit-amount" class="w-full bg-slate-50 border-0 rounded-xl p-3 font-black text-blue-600 text-sm outline-none shadow-inner">
-                </div>
-                <div>
-                    <input type="file" id="edit-photo" accept="image/*" class="hide" onchange="processImage(this, 'edit')">
-                    <button type="button" onclick="document.getElementById('edit-photo').click()" class="w-full py-3 bg-blue-50 text-blue-600 border border-blue-100 rounded-xl text-[9px] font-black uppercase flex items-center justify-center gap-2">
-                        <i data-lucide="refresh-cw" size="14"></i> Ganti Foto Bukti
-                    </button>
-                    <div id="edit-img-preview-container" class="hide mt-3 relative">
-                        <img id="edit-img-preview" class="img-preview" src="">
-                        <button type="button" onclick="removeImage('edit')" class="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full"><i data-lucide="x" size="10"></i></button>
-                    </div>
-                </div>
-                <div class="flex gap-3 pt-4">
-                    <button type="button" onclick="closeEditModal()" class="flex-1 py-4 bg-slate-100 text-slate-400 font-black rounded-2xl text-[9px] uppercase tracking-widest">Batal</button>
-                    <button type="submit" id="btn-do-update" class="flex-1 py-4 bg-blue-600 text-white font-black rounded-2xl text-[9px] uppercase shadow-xl active:scale-95">Perbarui</button>
+    <!-- Modal View Proof -->
+    <div id="modal-view-proof" class="hide fixed inset-0 modal-overlay z-[700] flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-sm rounded-[40px] overflow-hidden shadow-2xl animate-in zoom-in duration-300 text-slate-900">
+            <div class="p-4 flex justify-between items-center border-b border-slate-100 bg-white text-slate-900">
+                <span class="text-[9px] font-black uppercase tracking-widest text-slate-400 text-slate-400 text-slate-400 text-slate-400">Bukti Iuran Jho</span>
+                <button onclick="document.getElementById('modal-view-proof').classList.add('hide')" class="p-1.5 bg-slate-50 text-slate-400 rounded-lg text-slate-400 text-slate-400 text-slate-400 text-slate-400"><i data-lucide="x" size="18"></i></button>
+            </div>
+            <div class="p-5 text-center bg-slate-50">
+                <img id="view-proof-img" class="w-full h-auto rounded-3xl shadow-sm border border-slate-200 mx-auto" src="">
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Login -->
+    <div id="modal-login" class="hide fixed inset-0 modal-overlay z-[500] flex items-center justify-center p-4 text-slate-900">
+        <div class="bg-white w-full max-w-sm rounded-[40px] p-10 shadow-2xl animate-in zoom-in duration-300 border-b-[10px] border-slate-900 text-slate-900">
+            <h3 class="text-2xl font-black uppercase italic text-center mb-8 tracking-tighter leading-none text-slate-900 text-slate-900 text-slate-900 text-slate-900">Otoritas Admin</h3>
+            <form id="form-login" class="space-y-4 text-slate-900">
+                <input type="email" id="login-email" required class="w-full bg-slate-50 border-0 rounded-2xl p-5 font-bold text-sm outline-none shadow-inner text-slate-900 text-slate-900 text-slate-900" placeholder="Email">
+                <input type="password" id="login-password" required class="w-full bg-slate-50 border-0 rounded-2xl p-5 font-bold text-sm outline-none shadow-inner text-slate-900 text-slate-900 text-slate-900" placeholder="Sandi">
+                <div class="flex gap-3 pt-6 text-slate-900">
+                    <button type="button" onclick="toggleLoginModal(false)" class="flex-1 py-5 bg-slate-100 text-slate-400 font-black rounded-2xl text-[10px] uppercase tracking-widest text-slate-400 text-slate-400">Batal</button>
+                    <button type="submit" id="btn-do-login" class="flex-1 py-5 bg-slate-900 text-white font-black rounded-2xl text-[10px] uppercase shadow-xl active:scale-95 tracking-widest text-white text-white text-white text-white">Masuk</button>
                 </div>
             </form>
         </div>
@@ -333,34 +286,23 @@
 
     <!-- Modal Kwitansi -->
     <div id="modal-receipt" class="hide fixed inset-0 modal-overlay z-[600] flex items-center justify-center p-4 md:p-6 print:hidden text-slate-900">
-        <div class="bg-white w-full max-w-[420px] rounded-[32px] overflow-hidden shadow-2xl animate-in fade-in duration-300 flex flex-col">
-            <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-white shrink-0">
-                <span class="font-black text-[8px] text-slate-300 tracking-[0.2em] uppercase italic leading-none">Receipt Record</span>
-                <div class="flex gap-1.5">
-                    <button onclick="downloadReceipt()" class="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 shadow-sm"><i data-lucide="download" size="18"></i></button>
-                    <button onclick="window.print()" class="p-2 bg-slate-900 text-white rounded-lg hover:bg-black shadow-sm"><i data-lucide="printer" size="18"></i></button>
-                    <button onclick="closeReceipt()" class="p-2 bg-slate-100 text-slate-400 rounded-lg"><i data-lucide="x" size="18"></i></button>
+        <div class="bg-white w-full max-w-[420px] rounded-[48px] overflow-hidden shadow-2xl animate-in fade-in duration-300 flex flex-col">
+            <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-white shrink-0 text-slate-900">
+                <span class="font-black text-[8px] text-slate-300 tracking-[0.2em] uppercase italic leading-none text-center text-slate-300">Receipt System</span>
+                <div class="flex gap-1.5 text-slate-900">
+                    <button onclick="downloadReceipt()" class="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 shadow-sm text-blue-600 text-blue-600"><i data-lucide="download" size="18"></i></button>
+                    <button onclick="window.print()" class="p-2 bg-slate-900 text-white rounded-lg hover:bg-black shadow-sm text-white text-white"><i data-lucide="printer" size="18"></i></button>
+                    <button onclick="closeReceipt()" class="p-2 bg-slate-100 text-slate-400 rounded-lg text-slate-400 text-slate-400"><i data-lucide="x" size="18"></i></button>
                 </div>
             </div>
-            <div id="receipt-scroll-area" class="p-4 md:p-8 overflow-auto bg-slate-50 flex justify-center">
-                <div id="receipt-modal-content" class="bg-white rounded-xl shadow-sm overflow-hidden border border-slate-100"></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal Hapus -->
-    <div id="modal-confirm" class="hide fixed inset-0 modal-overlay z-[2000] flex items-center justify-center p-6 text-slate-900">
-        <div class="bg-white w-full max-w-[300px] rounded-[28px] p-6 shadow-2xl text-center text-slate-900">
-            <h3 class="text-base font-black uppercase mb-1 leading-none">Hapus Data?</h3>
-            <p class="text-[10px] text-slate-400 font-medium mb-6 leading-relaxed px-4">Record akan dihapus permanen dari sistem cloud.</p>
-            <div class="flex gap-3 text-white">
-                <button onclick="closeConfirm()" class="flex-1 py-3 bg-slate-100 text-slate-400 font-black rounded-lg text-[9px] uppercase tracking-widest">Batal</button>
-                <button id="btn-confirm-delete" class="flex-1 py-3 bg-red-600 text-white font-black rounded-lg text-[9px] uppercase shadow-lg active:scale-95 text-white">Hapus</button>
+            <div id="receipt-scroll-area" class="p-4 md:p-10 overflow-auto bg-slate-50 flex justify-center text-slate-900">
+                <div id="receipt-modal-content" class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden text-slate-900"></div>
             </div>
         </div>
     </div>
 
     <script>
+        // --- UTILS ---
         const monthOrder = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
         const formatIDR = (num) => "Rp " + new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num);
 
@@ -368,7 +310,7 @@
             const t = document.getElementById('toast'), tm = document.getElementById('toast-message'), ti = document.getElementById('toast-icon');
             if(!t || !tm || !ti) return;
             tm.textContent = msg;
-            ti.className = `p-2 rounded-lg ${type === 'error' ? 'bg-red-500' : 'bg-blue-500'} text-white`;
+            ti.className = `p-2 rounded-lg ${type === 'error' ? 'bg-red-500' : 'bg-blue-500'} text-white text-white text-white`;
             t.classList.remove('hide');
             setTimeout(() => { if(t) t.classList.add('hide'); }, 4000);
         }
@@ -388,6 +330,7 @@
             return result.replace(/\s+/g, ' ').trim();
         }
 
+        // --- FIREBASE ---
         const firebaseConfig = {
             apiKey: "AIzaSyDUtuXtMMh9lLEcFUrpPw19upXl2lWf2EQ",
             authDomain: "gdi-wi-fi-net.firebaseapp.com",
@@ -399,8 +342,7 @@
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth(), db = firebase.firestore(), appId = "gdi-wifi-ledger";
 
-        let currentData = [], isAdminActive = false, deleteId = null, isInitialLoad = true, firstSync = true;
-        let tempBase64Add = "", tempBase64Edit = "";
+        let currentData = [], isAdminActive = false, isInitialLoad = true, tempBase64Edit = "";
 
         async function initSecurity() {
             try {
@@ -423,8 +365,8 @@
         }
 
         function updateUI(admin) {
-            const pa = document.getElementById('panel-admin'), pg = document.getElementById('panel-guest'), blo = document.getElementById('btn-login-open'), blt = document.getElementById('btn-logout-trigger'), ba = document.getElementById('badge-admin'), bg = document.getElementById('badge-guest');
-            if(pa) pa.classList.toggle('hide', !admin); if(pg) pg.classList.toggle('hide', admin); if(blo) blo.classList.toggle('hide', admin); if(blt) blt.classList.toggle('hide', !admin); if(ba) ba.classList.toggle('hide', !admin); if(bg) bg.classList.toggle('hide', admin);
+            const ba = document.getElementById('badge-admin'), bg = document.getElementById('badge-guest'), blo = document.getElementById('btn-login-open'), blt = document.getElementById('btn-logout-trigger'), pgi = document.getElementById('panel-guest-info'), bdr = document.getElementById('btn-delete-record'), pan = document.getElementById('panel-admin-note');
+            if(ba) ba.classList.toggle('hide', !admin); if(bg) bg.classList.toggle('hide', admin); if(blo) blo.classList.toggle('hide', admin); if(blt) blt.classList.toggle('hide', !admin); if(pgi) pgi.classList.toggle('hide', admin); if(bdr) bdr.classList.toggle('hide', !admin); if(pan) pan.classList.toggle('hide', !admin);
             lucide.createIcons();
         }
 
@@ -435,164 +377,89 @@
             const col = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('payments');
             col.onSnapshot((snapshot) => {
                 currentData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                updateFilterOptions();
-                
-                if (firstSync) {
-                    const now = new Date();
-                    const fm = document.getElementById('filter-month'), fy = document.getElementById('filter-year');
-                    if(fm) fm.value = monthOrder[now.getMonth()];
-                    if(fy) fy.value = String(now.getFullYear());
-                    firstSync = false;
-                }
-                
-                renderTable();
+                updateYearFilter();
+                renderBillingGrid();
                 const totalEl = document.getElementById('display-total');
                 if(totalEl) totalEl.textContent = formatIDR(currentData.reduce((s, i) => s + (Number(i.amount) || 0), 0));
             });
         }
 
-        function updateFilterOptions() {
-            const selectFilterYear = document.getElementById('filter-year');
-            if(!selectFilterYear) return;
-            const years = [...new Set(currentData.map(p => String(p.year).trim()))].sort((a,b) => b - a);
-            const currentYearFilter = selectFilterYear.value;
-            selectFilterYear.innerHTML = `<option value="Semua">Semua Thn</option>` + years.map(y => `<option value="${y}" ${y == currentYearFilter ? 'selected' : ''}>Tahun ${y}</option>`).join('');
+        function updateYearFilter() {
+            const selectYear = document.getElementById('filter-year');
+            if(!selectYear) return;
+            const years = [...new Set(currentData.map(p => String(p.year).trim()))];
+            const nowYear = String(new Date().getFullYear());
+            if(!years.includes(nowYear)) years.push(nowYear);
+            years.sort((a,b) => b - a);
+            const currentSelected = selectYear.value;
+            selectYear.innerHTML = years.map(y => `<option value="${y}" ${y == (currentSelected || nowYear) ? 'selected' : ''}>TAHUN ${y}</option>`).join('');
         }
 
-        function renderTable() {
-            const container = document.getElementById('history-container'), fMonthEl = document.getElementById('filter-month'), fYearEl = document.getElementById('filter-year'), fStatusEl = document.getElementById('filter-status'), countEl = document.getElementById('display-count');
-            if(!container || !fMonthEl || !fYearEl || !fStatusEl) return;
+        function renderBillingGrid() {
+            const grid = document.getElementById('billing-grid'), year = document.getElementById('filter-year').value;
+            if(!grid || !year) return;
+
+            const payer = "Jho/Joventaluk";
+            const payerDocs = currentData.filter(p => p.payer === payer && String(p.year).trim() === year);
             
-            const fMonth = fMonthEl.value, fYear = fYearEl.value, fStatus = fStatusEl.value;
-
-            let filteredData = currentData.filter(p => {
-                const matchMonth = fMonth === "Semua" || p.month === fMonth;
-                const matchYear = fYear === "Semua" || String(p.year).trim() === fYear;
-                const matchStatus = fStatus === "Semua" || (p.status || 'Lunas') === fStatus;
-                return matchMonth && matchYear && matchStatus;
-            });
-
-            const sorted = filteredData.sort((a, b) => {
-                if (String(b.year).trim() !== String(a.year).trim()) return Number(b.year) - Number(a.year);
-                return monthOrder.indexOf(b.month) - monthOrder.indexOf(a.month);
-            });
-
-            if(countEl) countEl.textContent = sorted.length + " RECORD";
-
-            if (sorted.length === 0) { 
-                container.innerHTML = `<div class="py-20 text-center text-slate-300 uppercase italic text-[9px] tracking-widest leading-relaxed px-10">Data tidak ditemukan</div>`; 
-                return; 
-            }
-
-            container.innerHTML = sorted.map(p => `
-                <div class="p-5 flex flex-col gap-4 group hover:bg-slate-50/50 transition-all border-b border-slate-50 last:border-0">
-                    <div class="flex justify-between items-start">
+            grid.innerHTML = `
+                <div class="bg-white rounded-[40px] premium-card overflow-hidden">
+                    <div class="p-6 border-b border-slate-50 bg-slate-50/10 flex items-center gap-4 text-slate-900">
+                        <div class="w-12 h-12 bg-slate-900 text-white rounded-[18px] flex items-center justify-center shadow-xl transform -rotate-6 text-white text-white text-white"><i data-lucide="receipt" size="22"></i></div>
                         <div>
-                            <h3 class="font-black text-slate-900 text-sm leading-none tracking-tight">${p.month} ${p.year}</h3>
-                            ${p.status === 'Lunas' ? `<p class="text-[8px] text-blue-500 font-black uppercase mt-1.5 tracking-widest leading-none">Diterima: ${new Date(p.payDate || p.date).toLocaleDateString('id-ID')}</p>` : ''}
-                        </div>
-                        <div class="text-right">
-                            <p class="font-black text-green-600 text-sm tracking-tighter leading-none">${formatIDR(p.amount)}</p>
-                            <span class="text-[8px] font-black uppercase px-2 py-0.5 rounded-md inline-block mt-1 ${p.status === 'Lunas' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}">${p.status || 'Lunas'}</span>
+                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] leading-none mb-1.5">Penagihan Iuran</p>
+                            <p class="text-sm font-black uppercase text-slate-900 tracking-tight leading-none text-slate-900 text-slate-900">${payer}</p>
                         </div>
                     </div>
-
-                    <div class="flex justify-between items-center gap-3">
-                        <div class="flex-1 border-l-2 border-slate-200 pl-3">
-                            <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Penyetor</p>
-                            <p class="text-xs font-black text-slate-600 italic leading-none">${p.payer}</p>
-                        </div>
-                        <div class="flex items-center gap-1.5">
-                            ${p.proofImage ? `<button onclick="viewProof('${p.proofImage}')" class="w-9 h-9 flex items-center justify-center bg-blue-50 text-blue-600 rounded-xl active:scale-90" title="Foto Bukti"><i data-lucide="camera" size="16"></i></button>` : ''}
-                            <button onclick="viewReceipt('${p.id}')" class="w-9 h-9 flex items-center justify-center bg-white border border-slate-200 text-slate-400 rounded-xl active:scale-90 shadow-sm transition-all"><i data-lucide="receipt" size="16"></i></button>
-                            ${isAdminActive ? `
-                                <button onclick="openEditModal('${p.id}')" class="w-9 h-9 flex items-center justify-center bg-white border border-slate-200 text-blue-400 rounded-xl active:scale-90 shadow-sm"><i data-lucide="edit-3" size="16"></i></button>
-                                <button onclick="openConfirm('${p.id}')" class="w-9 h-9 flex items-center justify-center bg-white border border-slate-200 text-red-400 rounded-xl active:scale-90 shadow-sm"><i data-lucide="trash-2" size="16"></i></button>
-                            ` : ''}
-                        </div>
+                    <div class="p-5 grid grid-cols-4 gap-3">
+                        ${monthOrder.map(month => {
+                            const doc = payerDocs.find(d => d.month === month);
+                            const status = doc ? (doc.status || 'Lunas') : 'empty';
+                            let bgColor = "bg-slate-50 border-slate-100 text-slate-300", icon = "plus";
+                            if (status === 'Lunas') { bgColor = "bg-green-500 border-green-600 text-white shadow-lg shadow-green-100/50 text-white text-white"; icon = "check"; }
+                            else if (status === 'Belum Lunas') { bgColor = "bg-orange-500 border-orange-600 text-white shadow-lg shadow-orange-100/50 text-white text-white"; icon = "alert-circle"; }
+                            return `<button onclick="handleBillingClick('${payer}', '${month}', '${year}', '${doc ? doc.id : ''}')" class="bill-card aspect-square rounded-[24px] border-b-4 flex flex-col items-center justify-center gap-1 transition-all ${bgColor}"><span class="text-[8px] font-black uppercase leading-none">${month.slice(0,3)}</span><i data-lucide="${icon}" size="14"></i></button>`;
+                        }).join('')}
                     </div>
                 </div>
-            `).join('');
+            `;
             lucide.createIcons();
         }
 
-        // --- IMAGE PROCESS ---
-        function processImage(input, type) {
-            const file = input.files[0]; if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const img = new Image();
-                img.onload = function() {
-                    const canvas = document.createElement('canvas');
-                    let width = img.width, height = img.height, max = 600;
-                    if (width > height) { if (width > max) { height *= max / width; width = max; } } else { if (height > max) { width *= max / height; height = max; } }
-                    canvas.width = width; canvas.height = height;
-                    const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height);
-                    const base64 = canvas.toDataURL('image/jpeg', 0.5);
-                    if (type === 'add') { tempBase64Add = base64; const ap = document.getElementById('add-img-preview'), apc = document.getElementById('add-img-preview-container'); if(ap) ap.src = base64; if(apc) apc.classList.remove('hide'); } 
-                    else { tempBase64Edit = base64; const ep = document.getElementById('edit-img-preview'), epc = document.getElementById('edit-img-preview-container'); if(ep) ep.src = base64; if(epc) epc.classList.remove('hide'); }
-                };
-                img.src = e.target.result;
-            };
-            reader.readAsDataURL(file);
+        function handleBillingClick(payer, month, year, docId) {
+            const p = currentData.find(x => x.id === docId);
+            if(!isAdminActive) { if(docId) viewReceipt(docId); else showToast("Belum ada record."); return; }
+            document.getElementById('edit-id').value = docId || "";
+            document.getElementById('edit-month').value = month;
+            document.getElementById('edit-year').value = year;
+            document.getElementById('edit-modal-title').textContent = `${month} ${year}`;
+            document.getElementById('edit-status').value = p ? (p.status || 'Belum Lunas') : 'Belum Lunas';
+            document.getElementById('edit-amount').value = p ? p.amount : 150000;
+            document.getElementById('edit-pay-date').value = (p && p.payDate) ? p.payDate : "";
+            document.getElementById('edit-notes').value = (p && p.notes) ? p.notes : "";
+            if (p && p.proofImage) { tempBase64Edit = p.proofImage; document.getElementById('edit-img-preview').src = p.proofImage; document.getElementById('edit-img-preview-container').classList.remove('hide'); }
+            else { tempBase64Edit = ""; document.getElementById('edit-img-preview-container').classList.add('hide'); }
+            toggleLunasFields('edit');
+            document.getElementById('modal-edit').classList.remove('hide');
         }
 
-        function removeImage(type) {
-            if (type === 'add') { tempBase64Add = ""; const apc = document.getElementById('add-img-preview-container'), fp = document.getElementById('field-photo'); if(apc) apc.classList.add('hide'); if(fp) fp.value = ""; } 
-            else { tempBase64Edit = ""; const epc = document.getElementById('edit-img-preview-container'), eph = document.getElementById('edit-photo'); if(epc) epc.classList.add('hide'); if(eph) eph.value = ""; }
-        }
+        function closeEditModal() { document.getElementById('modal-edit').classList.add('hide'); }
 
-        function toggleLunasFields(type) {
-            const sEl = document.getElementById(type === 'add' ? 'field-status' : 'edit-status'), dEl = document.getElementById(type === 'add' ? 'lunas-detail-add' : 'lunas-detail-edit');
-            if(!sEl || !dEl) return;
-            const status = sEl.value;
-            if (status === 'Lunas') {
-                dEl.classList.remove('hide'); const now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-                if (type === 'add') { const fpd = document.getElementById('field-pay-date'); if(fpd) fpd.value = now.toISOString().slice(0, 16); }
-            } else { dEl.classList.add('hide'); }
-        }
-
-        function openEditModal(id) {
-            const p = currentData.find(x => x.id === id); if(!p) return;
-            const eid = document.getElementById('edit-id'), epa = document.getElementById('edit-payer'), em = document.getElementById('edit-month'), ey = document.getElementById('edit-year'), es = document.getElementById('edit-status'), ea = document.getElementById('edit-amount'), epd = document.getElementById('edit-pay-date'), en = document.getElementById('edit-notes');
-            if(eid) eid.value = id; if(epa) epa.value = p.payer; if(em) em.value = p.month; if(ey) ey.value = p.year; if(es) es.value = p.status || 'Lunas'; if(ea) ea.value = p.amount; if(epd) epd.value = p.payDate || ""; if(en) en.value = p.notes || "";
-            if (p.proofImage) { tempBase64Edit = p.proofImage; const ep = document.getElementById('edit-img-preview'), epc = document.getElementById('edit-img-preview-container'); if(ep) ep.src = p.proofImage; if(epc) epc.classList.remove('hide'); } else { tempBase64Edit = ""; const epc = document.getElementById('edit-img-preview-container'); if(epc) epc.classList.add('hide'); }
-            toggleLunasFields('edit'); const me = document.getElementById('modal-edit'); if(me) me.classList.remove('hide'); lucide.createIcons();
-        }
-
-        function closeEditModal() { const me = document.getElementById('modal-edit'); if(me) me.classList.add('hide'); }
-
-        const formEdit = document.getElementById('form-edit');
-        if(formEdit) formEdit.onsubmit = async (e) => {
-            e.preventDefault(); const id = document.getElementById('edit-id').value, status = document.getElementById('edit-status').value;
-            try { await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('payments').doc(id).update({ payer: document.getElementById('edit-payer').value, month: document.getElementById('edit-month').value, year: Number(document.getElementById('edit-year').value), status: status, amount: Number(document.getElementById('edit-amount').value), payDate: status === 'Lunas' ? document.getElementById('edit-pay-date').value : "", notes: status === 'Lunas' ? document.getElementById('edit-notes').value : "", proofImage: tempBase64Edit }); showToast("Data Diperbarui."); closeEditModal(); } catch (err) { showToast("Gagal Memperbarui.", "error"); }
+        document.getElementById('form-edit').onsubmit = async (e) => {
+            e.preventDefault(); const id = document.getElementById('edit-id').value, month = document.getElementById('edit-month').value, year = document.getElementById('edit-year').value, status = document.getElementById('edit-status').value, btn = document.getElementById('btn-do-update');
+            btn.disabled = true; btn.textContent = "Sync...";
+            const payload = { payer: "Jho/Joventaluk", month, year: Number(year), status, amount: Number(document.getElementById('edit-amount').value), payDate: status === 'Lunas' ? document.getElementById('edit-pay-date').value : "", notes: status === 'Lunas' ? document.getElementById('edit-notes').value : "", proofImage: tempBase64Edit, date: new Date().toISOString().split('T')[0], timestamp: firebase.firestore.FieldValue.serverTimestamp() };
+            try { const col = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('payments'); if (id) await col.doc(id).update(payload); else await col.add(payload); showToast("Record Berhasil Disimpan."); closeEditModal(); } catch (err) { showToast("Gagal simpan.", "error"); }
+            btn.disabled = false; btn.textContent = "Simpan";
         };
 
-        function openConfirm(id) { deleteId = id; const mc = document.getElementById('modal-confirm'); if(mc) mc.classList.remove('hide'); }
-        function closeConfirm() { deleteId = null; const mc = document.getElementById('modal-confirm'); if(mc) mc.classList.add('hide'); }
-        const btnConfDel = document.getElementById('btn-confirm-delete');
-        if(btnConfDel) btnConfDel.onclick = async () => { if (!deleteId || !isAdminActive) return; try { await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('payments').doc(deleteId).delete(); showToast("Data Dihapus."); closeConfirm(); } catch (err) { showToast("Gagal Hapus.", "error"); } };
-        const btnLogOut = document.getElementById('btn-logout-trigger');
-        if(btnLogOut) btnLogOut.onclick = async () => { await auth.signOut(); showToast("Logout Berhasil."); };
-
-        const formPayment = document.getElementById('form-payment');
-        if(formPayment) formPayment.onsubmit = async (e) => {
-            e.preventDefault(); const btn = document.getElementById('btn-submit'), status = document.getElementById('field-status').value;
-            btn.disabled = true; btn.textContent = "Mengirim...";
-            const data = { payer: document.getElementById('field-payer').value, month: document.getElementById('field-month').value, year: Number(document.getElementById('field-year').value), status: status, amount: Number(document.getElementById('field-amount').value), payDate: status === 'Lunas' ? document.getElementById('field-pay-date').value : "", notes: status === 'Lunas' ? document.getElementById('field-notes').value : "", proofImage: tempBase64Add, date: new Date().toISOString().split('T')[0], timestamp: firebase.firestore.FieldValue.serverTimestamp() };
-            try { await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('payments').add(data); e.target.reset(); removeImage('add'); toggleLunasFields('add'); document.getElementById('field-year').value = new Date().getFullYear(); showToast("Berhasil Disimpan."); } catch (err) { showToast("Gagal Simpan.", "error"); }
-            btn.disabled = false; btn.textContent = "Simpan Iuran"; lucide.createIcons();
-        };
-
-        const formLogin = document.getElementById('form-login');
-        if(formLogin) formLogin.onsubmit = async (e) => {
-            e.preventDefault(); const btn = document.getElementById('btn-do-login'); btn.disabled = true;
-            try { await auth.signInWithEmailAndPassword(document.getElementById('login-email').value, document.getElementById('login-password').value); showToast("Sesi Admin Aktif."); toggleLoginModal(false); } catch (err) { showToast("Identitas Salah.", "error"); }
-            btn.disabled = false;
-        };
-
-        const btnLogOpen = document.getElementById('btn-login-open');
-        if(btnLogOpen) btnLogOpen.onclick = () => toggleLoginModal(true);
+        document.getElementById('btn-delete-record').onclick = async () => { const id = document.getElementById('edit-id').value; if(!id || !isAdminActive) return; if(confirm("Hapus record ini?")) { try { await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('payments').doc(id).delete(); showToast("Record Dihapus."); closeEditModal(); } catch(e) { showToast("Gagal hapus.", "error"); } } };
+        function processImage(input, type) { const file = input.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = function(e) { const img = new Image(); img.onload = function() { const canvas = document.createElement('canvas'); let width = img.width, height = img.height, max = 500; if (width > height) { if (width > max) { height *= max / width; width = max; } } else { if (height > max) { width *= max / height; height = max; } } canvas.width = width; canvas.height = height; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height); const base64 = canvas.toDataURL('image/jpeg', 0.5); tempBase64Edit = base64; const ep = document.getElementById('edit-img-preview'), epc = document.getElementById('edit-img-preview-container'); if(ep) ep.src = base64; if(epc) epc.classList.remove('hide'); }; img.src = e.target.result; }; reader.readAsDataURL(file); }
+        function removeImage(type) { tempBase64Edit = ""; const epc = document.getElementById('edit-img-preview-container'), eph = document.getElementById('edit-photo'); if(epc) epc.classList.add('hide'); if(eph) eph.value = ""; }
+        function toggleLunasFields(type) { const status = document.getElementById('edit-status').value, dEl = document.getElementById('lunas-detail-edit'); if (status === 'Lunas') { dEl.classList.remove('hide'); if(!document.getElementById('edit-pay-date').value) { const now = new Date(); now.setMinutes(now.getMinutes() - now.getTimezoneOffset()); document.getElementById('edit-pay-date').value = now.toISOString().slice(0, 16); } } else { dEl.classList.add('hide'); } }
+        document.getElementById('form-login').onsubmit = async (e) => { e.preventDefault(); const btn = document.getElementById('btn-do-login'); btn.disabled = true; try { await auth.signInWithEmailAndPassword(document.getElementById('login-email').value, document.getElementById('login-password').value); showToast("Sesi Admin Aktif."); toggleLoginModal(false); } catch (err) { showToast("Identitas Salah.", "error"); } btn.disabled = false; };
+        document.getElementById('btn-logout-trigger').onclick = async () => { await auth.signOut(); showToast("Berhasil Keluar."); };
+        document.getElementById('btn-login-open').onclick = () => toggleLoginModal(true);
 
         function viewReceipt(id) {
             const p = currentData.find(x => x.id === id); if (!p) return;
@@ -602,17 +469,17 @@
                 <div id="capture-area">
                     <div class="text-center mb-8">
                         <p class="font-black text-xs uppercase tracking-tight mb-0.5 px-4 text-slate-900 leading-tight">Iuran Bersama Wifi Ferdi & Jho/Joventaluk</p>
-                        <p class="text-[8px] font-bold uppercase tracking-[0.1em] text-slate-400 leading-none mt-1">Bengkayang Digital Ledger</p>
-                        <p class="text-[7px] font-medium text-slate-500 leading-tight mt-2 px-6 uppercase">Griya Damai Indah Blok B No. 8</p>
-                        <p class="text-[7px] font-medium text-slate-500 leading-tight italic">WhatsApp: 082149335323 (Jho)</p>
+                        <p class="text-[8px] font-bold uppercase tracking-[0.1em] text-slate-400 leading-none mt-1 text-slate-400">Bengkayang Digital Ledger</p>
+                        <p class="text-[7px] font-medium text-slate-500 leading-tight mt-2 px-6 uppercase text-slate-500">Griya Damai Indah Blok B No. 8</p>
+                        <p class="text-[7px] font-medium text-slate-500 leading-tight italic text-slate-500 text-slate-400">WhatsApp: 082149335323 (Jho)</p>
                     </div>
-                    <div class="space-y-6 mb-8 border-t border-b border-dashed border-slate-200 py-8 text-left">
-                        <div><span class="text-[7px] font-black text-slate-300 uppercase leading-none mb-2 block tracking-widest leading-none">Diterima Dari</span><div class="relative"><span class="text-lg font-black uppercase text-slate-900 block tracking-tight leading-none">${p.payer}</span><div class="w-full h-[1.5px] bg-slate-900 mt-1"></div></div></div>
-                        <div><span class="text-[7px] font-black text-slate-300 uppercase leading-none mb-2 block tracking-widest leading-none">Terbilang (Lengkap)</span><span class="text-[10px] font-bold italic text-slate-700 leading-tight block text-slate-700"># ${getTerbilang(p.amount)} Rupiah #</span></div>
-                        <div><span class="text-[7px] font-black text-slate-300 uppercase leading-none mb-2 block tracking-widest text-blue-600 leading-none">Status & Periode</span><div class="flex flex-col gap-1.5"><span class="text-[11px] font-black leading-none uppercase ${statusColor}">${p.status || 'Lunas'} — ${p.month} ${p.year}</span>${p.status === 'Lunas' ? `<p class="text-[8px] font-bold text-blue-600 uppercase tracking-tight leading-none italic text-blue-600">Diterima: ${payTime}</p>` : ''}${p.notes ? `<p class="text-[9px] font-medium text-slate-500 border-l-2 border-slate-200 pl-2 mt-1 leading-relaxed capitalize text-slate-500">${p.notes}</p>` : ''}</div></div>
+                    <div class="space-y-6 mb-8 border-t border-b border-dashed border-slate-200 py-8 text-left text-slate-900">
+                        <div><span class="text-[7px] font-black text-slate-300 uppercase leading-none mb-2 block tracking-widest text-slate-400">Diterima Dari</span><div class="relative"><span class="text-lg font-black uppercase text-slate-900 block tracking-tight text-slate-900">${p.payer}</span><div class="w-full h-[1.5px] bg-slate-900 mt-1 text-slate-900"></div></div></div>
+                        <div><span class="text-[7px] font-black text-slate-300 uppercase leading-none mb-2 block tracking-widest text-slate-400 leading-none">Terbilang</span><span class="text-[10px] font-bold italic text-slate-700 leading-tight block text-slate-700"># ${getTerbilang(p.amount)} Rupiah #</span></div>
+                        <div><span class="text-[7px] font-black text-slate-300 uppercase leading-none mb-2 block tracking-widest text-blue-600 leading-none">Status & Periode</span><div class="flex flex-col gap-1.5 text-slate-900 text-slate-900 text-slate-900"><span class="text-[11px] font-black leading-none uppercase ${statusColor}">${p.status || 'Lunas'} — ${p.month} ${p.year}</span>${p.status === 'Lunas' ? `<p class="text-[8px] font-bold text-blue-600 uppercase tracking-tight leading-none italic text-blue-600 text-blue-600">Diterima: ${payTime}</p>` : ''}${p.notes ? `<p class="text-[9px] font-medium text-slate-500 border-l-2 border-slate-200 pl-2 mt-1 leading-relaxed capitalize text-slate-500 text-slate-500">${p.notes}</p>` : ''}</div></div>
                     </div>
-                    <div class="bg-slate-900 text-white p-5 rounded-2xl text-center mb-8 border-b-4 border-slate-700 shadow-lg text-white"><p class="text-[7px] font-black uppercase opacity-50 mb-1 tracking-widest leading-none">TOTAL PEMBAYARAN (NET)</p><p class="text-2xl font-black tracking-tighter leading-none">${formatIDR(p.amount)}</p></div>
-                    <div class="text-center"><p class="text-[9px] font-black text-slate-400 mb-4 uppercase tracking-widest leading-none">Bengkayang, ${new Date(p.date).toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'})}</p><div class="h-16 flex items-center justify-center"><p class="text-5xl cursive text-slate-900 font-bold transform -rotate-2 select-none leading-none text-slate-900">Ferdi</p></div></div>
+                    <div class="bg-slate-900 text-white p-5 rounded-2xl text-center mb-8 border-b-4 border-slate-700 shadow-lg text-white text-white text-white text-white text-white text-white"><p class="text-[7px] font-black uppercase opacity-50 mb-1 tracking-widest leading-none text-white text-white text-white">TOTAL PEMBAYARAN (NET)</p><p class="text-2xl font-black tracking-tighter leading-none text-white text-white text-white text-white text-white">${formatIDR(p.amount)}</p></div>
+                    <div class="text-center text-slate-900 text-slate-900 text-slate-900 text-slate-900"><p class="text-[9px] font-black text-slate-400 mb-4 uppercase tracking-widest leading-none text-slate-400 text-slate-400">Bengkayang, ${new Date(p.date).toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'})}</p><div class="h-16 flex items-center justify-center text-slate-900 text-slate-900 text-slate-900 text-slate-900"><p class="text-5xl cursive text-slate-900 font-bold transform -rotate-2 select-none leading-none text-slate-900 text-slate-900 text-slate-900 text-slate-900">Ferdi</p></div></div>
                 </div>
             `;
             const mr = document.getElementById('modal-receipt'); if(mr) mr.classList.remove('hide'); lucide.createIcons();
@@ -627,7 +494,7 @@
 
         function closeReceipt() { const mr = document.getElementById('modal-receipt'); if(mr) mr.classList.add('hide'); }
         function viewProof(base64) { const vpi = document.getElementById('view-proof-img'), mvp = document.getElementById('modal-view-proof'); if(vpi) vpi.src = base64; if(mvp) mvp.classList.remove('hide'); lucide.createIcons(); }
-        window.onload = () => { const fy = document.getElementById('field-year'); if(fy) fy.value = new Date().getFullYear(); toggleLunasFields('add'); initSecurity(); };
+        window.onload = () => { initSecurity(); };
     </script>
 </body>
 </html>
