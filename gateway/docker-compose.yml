@@ -1,0 +1,19 @@
+services:
+  wa-gateway:
+    build: .
+    container_name: wa-gateway
+    ports:
+      - "3000:3000"
+    volumes:
+      # Menyimpan session WhatsApp agar tidak perlu scan QR ulang setiap restart
+      - ./data:/app/data
+    env_file:
+      - .env
+    restart: unless-stopped
+    # Health check setiap 30 detik
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

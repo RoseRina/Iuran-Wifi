@@ -1,0 +1,15 @@
+[Unit]
+Description=WhatsApp Self-Hosted Gateway (whatsmeow)
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/wa-gateway
+EnvironmentFile=/opt/wa-gateway/.env
+ExecStart=/opt/wa-gateway/wa-gateway
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
