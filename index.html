@@ -583,7 +583,11 @@
                     <button type="button" onclick="closeEditModal()"
                         class="flex-1 py-3 bg-slate-800 text-slate-400 font-bold rounded-xl text-[9px] uppercase border border-slate-700 hover:bg-slate-700 transition-colors">Batal</button>
                     <button type="submit" id="btn-do-update"
-                        class="flex-1 py-3 accent-gradient text-slate-900 font-bold rounded-xl text-[9px] uppercase shadow-lg">Simpan</button>
+                        class="flex-1 py-3 accent-gradient text-slate-900 font-bold rounded-xl text-[9px] uppercase shadow-lg flex items-center justify-center gap-2 transition-all">
+                        <span id="btn-update-spinner"
+                            class="hide w-4 h-4 border-2 border-slate-900 border-t-transparent rounded-full animate-spin"></span>
+                        <span id="btn-update-text">Simpan</span>
+                    </button>
                 </div>
                 <button type="button" id="btn-delete-record"
                     class="hide w-full py-2 text-red-400 text-[8px] font-bold uppercase tracking-widest hover:text-red-300 transition-colors">Hapus
@@ -1016,13 +1020,18 @@
         document.getElementById('form-edit').onsubmit = async (e) => {
             e.preventDefault();
             const id = document.getElementById('edit-id').value, btn = document.getElementById('btn-do-update'), st = document.getElementById('edit-status').value, mo = document.getElementById('edit-month').value, ye = document.getElementById('edit-year').value;
-            btn.disabled = true;
+            const setBtnLoading = (loading, label) => {
+                btn.disabled = loading;
+                document.getElementById('btn-update-spinner').classList.toggle('hide', !loading);
+                document.getElementById('btn-update-text').textContent = label || (loading ? 'Memproses...' : 'Simpan');
+            };
+            setBtnLoading(true, 'Memproses...');
 
             // Langkah 1: Upload foto bukti ke Firebase Storage dulu (TIDAK simpan base64 di Firestore!)
             let proofImageUrl = tempProofUrlEdit; // pakai URL yg sudah ada jika foto tidak diganti
             if (tempBase64Edit) {
                 // Ada foto baru dipilih user → coba upload ke Storage (max 8 detik)
-                btn.textContent = "Upload foto...";
+                setBtnLoading(true, 'Upload foto...');
                 try {
                     // Konversi base64 → Blob (reliable, tanpa fetch())
                     const b64 = tempBase64Edit.split(',')[1] || tempBase64Edit;
@@ -1046,7 +1055,7 @@
                 }
             }
 
-            btn.textContent = "Sync...";
+            setBtnLoading(true, 'Menyimpan...');
             // Langkah 2: Bangun payload TANPA base64 (hanya URL Storage) → Firestore jadi ringan
             const payload = { payer: "Jho/Joventaluk", month: mo, year: Number(ye), status: st, amount: Number(document.getElementById('edit-amount').value), payDate: st === 'Lunas' ? document.getElementById('edit-pay-date').value : "", notes: st === 'Lunas' ? document.getElementById('edit-notes').value : "", proofImageUrl: proofImageUrl, proofImage: "", date: new Date().toISOString().split('T')[0], timestamp: firebase.firestore.FieldValue.serverTimestamp() };
 
@@ -1074,7 +1083,7 @@
                 }
                 closeEditModal();
             } catch (err) { showToast("Gagal simpan.", "error"); console.error(err); }
-            btn.disabled = false; btn.textContent = "Simpan";
+            setBtnLoading(false);
         };
 
         function closeEditModal() { document.getElementById('modal-edit').classList.add('hide'); }
