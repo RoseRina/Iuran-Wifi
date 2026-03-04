@@ -1024,10 +1024,17 @@
                 // Ada foto baru dipilih user → upload ke Storage → dapat URL
                 btn.textContent = "Upload foto...";
                 try {
-                    const blob = await (await fetch(tempBase64Edit)).blob();
+                    // Konversi base64 → Blob tanpa fetch() (lebih reliable)
+                    const b64 = tempBase64Edit.split(',')[1] || tempBase64Edit;
+                    const mime = tempBase64Edit.startsWith('data:') ? tempBase64Edit.split(';')[0].split(':')[1] : 'image/jpeg';
+                    const raw = atob(b64);
+                    const arr = new Uint8Array(raw.length);
+                    for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+                    const blob = new Blob([arr], { type: mime });
+
                     const photoKey = id || (mo + '-' + ye + '-' + Date.now());
                     const ref = storage.ref().child('receipts/proof-' + photoKey + '.jpg');
-                    await ref.put(blob, { contentType: 'image/jpeg' });
+                    await ref.put(blob, { contentType: mime });
                     proofImageUrl = await ref.getDownloadURL();
                 } catch (uploadErr) {
                     console.warn('Upload foto Storage gagal:', uploadErr);
