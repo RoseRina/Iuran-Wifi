@@ -675,7 +675,9 @@
             appId: "1:1096457513394:web:996d0936cfa60d1d7e1cab"
         };
         firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth(), db = firebase.firestore(), storage = firebase.storage(), appId = "gdi-wifi-ledger";
+        const auth = firebase.auth(), db = firebase.firestore(), appId = "gdi-wifi-ledger";
+        let storage = null;
+        try { storage = firebase.storage(); } catch (e) { console.warn('Firebase Storage tidak tersedia:', e.message); }
 
 
         async function initSecurity() {
