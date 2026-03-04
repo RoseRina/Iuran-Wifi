@@ -639,7 +639,28 @@
         const GATEWAY_URL = "https://iuran-wifi.duckdns.org";
         const GATEWAY_TOKEN = "ferdi-iuran-wifi-secret-2026";
 
-        const jhoWA = "6282149335323";
+        // Nomor & nominal dari gateway config (Opsi B: dinamis, fallback ke hardcoded)
+        let jhoWA = "6282149335323";   // fallback
+        let iuranAmount = 150000;       // fallback
+
+        async function loadGatewayConfig() {
+            try {
+                const resp = await Promise.race([
+                    fetch(GATEWAY_URL + '/config', {
+                        headers: { 'Authorization': 'Bearer ' + GATEWAY_TOKEN }
+                    }),
+                    new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 5000))
+                ]);
+                if (resp.ok) {
+                    const j = await resp.json();
+                    if (j.data && j.data.recipient_number) jhoWA = j.data.recipient_number;
+                    if (j.data && j.data.iuran_amount > 0) iuranAmount = j.data.iuran_amount;
+                    console.log('[Gateway] Config loaded — jhoWA:', jhoWA, 'iuran:', iuranAmount);
+                }
+            } catch (e) {
+                console.warn('[Gateway] Gagal load config, pakai fallback:', e.message);
+            }
+        }
         const monthOrder = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
         const formatIDR = (num) => "Rp " + new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0 }).format(num);
         let currentData = [], isAdminActive = false, tempBase64Edit = "", tempProofUrlEdit = "";
@@ -657,8 +678,8 @@
         const auth = firebase.auth(), db = firebase.firestore(), storage = firebase.storage(), appId = "gdi-wifi-ledger";
 
         async function initSecurity() {
-            // Tujuan: mode tamu tetap bisa baca data.
-            // Kalau auth/Firestore gagal, tampilkan error yang jelas (bukan loading selamanya).
+            // Load config gateway (paralel dengan Firebase init)
+            loadGatewayConfig(); // tidak perlu await — nilai fallback sudah aman
             try {
                 // Kickstart anonymous sign-in dan langsung sync data (paralel)
                 try {
@@ -943,7 +964,7 @@
         }
 
         function triggerReminder(month, year) {
-            const msg = `*PENGINGAT IURAN WIFI*\n\nHalo Jho, iuran WiFi periode *${month} ${year}* sebesar *Rp150.000* belum lunas nih. Tolong segera dibayar ya. Terima kasih!\n\nCek mutasi/riwayat pembayaran juga bisa melalui https://iuran-wifi.vercel.app/\nSetiap pembayaran yang lunas dan bukti bisa dicek dalam website.`;
+            const msg = `*PENGINGAT IURAN WIFI*\n\nHalo Jho, iuran WiFi periode *${month} ${year}* sebesar *${formatIDR(iuranAmount)}* belum lunas nih. Tolong segera dibayar ya. Terima kasih!\n\nCek mutasi/riwayat pembayaran juga bisa melalui https://iuran-wifi.vercel.app/\nSetiap pembayaran yang lunas dan bukti bisa dicek dalam website.`;
             sendWhatsapp(msg);
         }
 
@@ -1070,7 +1091,7 @@
                 }
                 showToast("Berhasil disimpan.");
                 if (st === 'Lunas') {
-                    const msg = `*KONFIRMASI PEMBAYARAN WIFI*\n\nHalo Jho, iuran WiFi periode *${mo} ${ye}* sebesar *Rp150.000* sudah dikonfirmasi *LUNAS*. Terima kasih!\n\nUntuk melihat data lainnya bisa akses di website : https://iuran-wifi.vercel.app/`;
+                    const msg = `*KONFIRMASI PEMBAYARAN WIFI*\n\nHalo Jho, iuran WiFi periode *${mo} ${ye}* sebesar *${formatIDR(iuranAmount)}* sudah dikonfirmasi *LUNAS*. Terima kasih!\n\nUntuk melihat data lainnya bisa akses di website : https://iuran-wifi.vercel.app/`;
                     if (proofImageUrl) {
                         // Ada URL foto → gateway download dari URL (paling efisien)
                         await sendWhatsappMedia(msg, proofImageUrl);
