@@ -767,10 +767,10 @@
             let firstSignal = false;
             const watchdog = setTimeout(() => {
                 if (!firstSignal) {
-                    showToast('Sinkronisasi lambat. Jika data 0, kemungkinan rules Firestore menolak mode tamu.', 'error');
+                    showToast('Koneksi lambat, menunggu data...');
                     hideLoading();
                 }
-            }, 3000);
+            }, 6000);
 
             col.onSnapshot((snapshot) => {
                 firstSignal = true;
@@ -784,9 +784,6 @@
                 );
 
                 // kalau benar-benar kosong, tetap pastikan UI year terisi
-                if (!currentData.length) {
-                    showToast('Data pembayaran kosong / belum bisa dibaca.', 'error');
-                }
 
                 hideLoading();
             }, (err) => {
