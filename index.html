@@ -360,7 +360,7 @@
                         <p class="text-[9px] text-slate-500 font-medium truncate mt-1">Griya Damai Indah Blok B Nomor 8
                         </p>
                         <div class="flex gap-2 mt-3">
-                            <a href="https://wa.me/6282149335323" target="_blank"
+                            <a id="wa-link-jho" href="https://wa.me/6282149335323" target="_blank"
                                 class="flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase border border-emerald-500/20 hover:bg-emerald-500/20 active:scale-95 transition-all">
                                 <i data-lucide="message-circle" size="12"></i> WhatsApp
                             </a>
@@ -653,7 +653,12 @@
                 ]);
                 if (resp.ok) {
                     const j = await resp.json();
-                    if (j.data && j.data.recipient_number) jhoWA = j.data.recipient_number;
+                    if (j.data && j.data.recipient_number) {
+                        jhoWA = j.data.recipient_number;
+                        // Update juga href tombol WA di kartu kontak
+                        const waLink = document.getElementById('wa-link-jho');
+                        if (waLink) waLink.href = 'https://wa.me/' + jhoWA;
+                    }
                     if (j.data && j.data.iuran_amount > 0) iuranAmount = j.data.iuran_amount;
                     console.log('[Gateway] Config loaded — jhoWA:', jhoWA, 'iuran:', iuranAmount);
                 }
