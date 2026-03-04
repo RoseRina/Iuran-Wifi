@@ -1021,10 +1021,10 @@
             // Langkah 1: Upload foto bukti ke Firebase Storage dulu (TIDAK simpan base64 di Firestore!)
             let proofImageUrl = tempProofUrlEdit; // pakai URL yg sudah ada jika foto tidak diganti
             if (tempBase64Edit) {
-                // Ada foto baru dipilih user → upload ke Storage → dapat URL
+                // Ada foto baru dipilih user → coba upload ke Storage (max 8 detik)
                 btn.textContent = "Upload foto...";
                 try {
-                    // Konversi base64 → Blob tanpa fetch() (lebih reliable)
+                    // Konversi base64 → Blob (reliable, tanpa fetch())
                     const b64 = tempBase64Edit.split(',')[1] || tempBase64Edit;
                     const mime = tempBase64Edit.startsWith('data:') ? tempBase64Edit.split(';')[0].split(':')[1] : 'image/jpeg';
                     const raw = atob(b64);
@@ -1034,11 +1034,15 @@
 
                     const photoKey = id || (mo + '-' + ye + '-' + Date.now());
                     const ref = storage.ref().child('receipts/proof-' + photoKey + '.jpg');
-                    await ref.put(blob, { contentType: mime });
-                    proofImageUrl = await ref.getDownloadURL();
+
+                    // Upload dengan timeout 8 detik — kalau timeout, lanjut tanpa URL
+                    proofImageUrl = await Promise.race([
+                        ref.put(blob, { contentType: mime }).then(() => ref.getDownloadURL()),
+                        new Promise((_, rej) => setTimeout(() => rej(new Error('upload timeout')), 8000))
+                    ]);
                 } catch (uploadErr) {
-                    console.warn('Upload foto Storage gagal:', uploadErr);
-                    // Jika gagal, lanjut simpan tanpa foto
+                    console.warn('Upload foto Storage gagal/timeout:', uploadErr.message);
+                    // Tidak masalah — WA tetap dikirim dengan base64 langsung
                 }
             }
 
