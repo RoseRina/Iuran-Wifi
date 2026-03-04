@@ -677,8 +677,6 @@
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth(), db = firebase.firestore(), storage = firebase.storage(), appId = "gdi-wifi-ledger";
 
-        // Aktifkan cache lokal agar load data instan dari browser IndexedDB
-        db.enablePersistence({ synchronizeTabs: true }).catch(() => { /* tab lain sudah memegang lock */ });
 
         async function initSecurity() {
             // Langsung sync data dari cache (instan) — tidak tunggu auth
