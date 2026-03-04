@@ -34,7 +34,46 @@ var (
 	qrMu      sync.Mutex
 	lastQR    string
 	connected bool
+
+	// Statistik pengiriman pesan
+	statsMu      sync.Mutex
+	totalSent    int64
+	totalFailed  int64
+	lastSentAt   time.Time
+	lastSentTo   string
+	lastSentType string
+	gatewayStart = time.Now()
+
+	// Konfigurasi (disimpan ke data/config.json)
+	cfgMu      sync.RWMutex
+	gwConfig   GatewayConfig
+	configPath string
 )
+
+// GatewayConfig menyimpan konfigurasi yang bisa diubah via admin panel
+type GatewayConfig struct {
+	RecipientNumber string `json:"recipient_number"`
+	IuranAmount     int    `json:"iuran_amount"`
+}
+
+func loadConfig(path string) {
+	configPath = path
+	data, err := os.ReadFile(path)
+	if err != nil {
+		// File belum ada, pakai default
+		gwConfig = GatewayConfig{RecipientNumber: "6282149335323", IuranAmount: 150000}
+		saveConfig()
+		return
+	}
+	if err := json.Unmarshal(data, &gwConfig); err != nil {
+		gwConfig = GatewayConfig{RecipientNumber: "6282149335323", IuranAmount: 150000}
+	}
+}
+
+func saveConfig() {
+	data, _ := json.MarshalIndent(gwConfig, "", "  ")
+	os.WriteFile(configPath, data, 0644)
+}
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
@@ -62,6 +101,9 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Load konfigurasi dari file
+	loadConfig(filepath.Join(filepath.Dir(dbPath), "config.json"))
+
 	if err := setupWhatsApp(dbPath); err != nil {
 		fmt.Printf("ERROR setup WhatsApp: %v\n", err)
 		os.Exit(1)
@@ -71,9 +113,11 @@ func main() {
 	r.Use(corsMiddleware)
 	r.Use(authMiddleware(token))
 
+	r.HandleFunc("/", handleAdminPanel).Methods("GET")
 	r.HandleFunc("/health", handleHealth).Methods("GET", "OPTIONS")
 	r.HandleFunc("/status", handleStatus).Methods("GET", "OPTIONS")
 	r.HandleFunc("/qr", handleQR).Methods("GET", "OPTIONS")
+	r.HandleFunc("/config", handleConfig).Methods("GET", "POST", "OPTIONS")
 	r.HandleFunc("/send", handleSend).Methods("POST", "OPTIONS")
 	r.HandleFunc("/send-media", handleSendMedia).Methods("POST", "OPTIONS")
 	r.HandleFunc("/send-base64", handleSendBase64).Methods("POST", "OPTIONS")
@@ -159,8 +203,8 @@ func handleWAEvent(evt interface{}) {
 func authMiddleware(token string) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// /health, /qr, /status tidak perlu auth (bisa dibuka di browser langsung)
-			noAuth := map[string]bool{"/health": true, "/qr": true, "/status": true}
+			// Endpoint yang tidak perlu auth
+			noAuth := map[string]bool{"/health": true, "/qr": true, "/status": true, "/": true}
 			if noAuth[r.URL.Path] {
 				next.ServeHTTP(w, r)
 				return
@@ -205,9 +249,24 @@ func handleStatus(w http.ResponseWriter, _ *http.Request) {
 	if waClient != nil && waClient.Store.ID != nil {
 		jid = waClient.Store.ID.String()
 	}
+	statsMu.Lock()
+	lastAt := ""
+	if !lastSentAt.IsZero() {
+		lastAt = lastSentAt.Format("02 Jan 2006 15:04:05 WIB")
+	}
+	stats := map[string]interface{}{
+		"total_sent":   totalSent,
+		"total_failed": totalFailed,
+		"last_sent_at": lastAt,
+		"last_sent_to": lastSentTo,
+		"last_type":    lastSentType,
+	}
+	statsMu.Unlock()
 	jsonOK(w, map[string]interface{}{
 		"connected": connected,
 		"jid":       jid,
+		"uptime":    time.Since(gatewayStart).Round(time.Second).String(),
+		"stats":     stats,
 	})
 }
 
@@ -257,6 +316,211 @@ func handleQR(w http.ResponseWriter, _ *http.Request) {
 </html>`, b64)
 }
 
+// GET / — Halaman admin panel
+func handleAdminPanel(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	fmt.Fprint(w, `<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WA Gateway Admin</title>
+  <style>
+    :root{--bg:#0f172a;--surf:#1e293b;--bdr:#334155;--txt:#e2e8f0;--muted:#94a3b8;--green:#22c55e;--red:#ef4444;--acc:#f59e0b}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;padding:20px}
+    .wrap{max-width:580px;margin:0 auto}
+    h1{font-size:1.3rem;font-weight:800;color:var(--acc);margin-bottom:20px;display:flex;align-items:center;gap:8px}
+    .card{background:var(--surf);border:1px solid var(--bdr);border-radius:14px;padding:18px;margin-bottom:14px}
+    .card h2{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:14px}
+    .badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;font-size:.75rem;font-weight:700}
+    .bg{background:rgba(34,197,94,.1);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+    .br{background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.2)}
+    .dot{width:8px;height:8px;border-radius:50%;background:currentColor}
+    .dg{animation:pulse 2s infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .sbox{background:rgba(255,255,255,.03);border-radius:10px;padding:12px}
+    .sl{font-size:.65rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:4px}
+    .sv{font-size:1.2rem;font-weight:800}
+    .sv.g{color:var(--green)}.sv.r{color:var(--red)}
+    .sm{font-size:.7rem;color:var(--muted);margin-top:2px}
+    .row{display:flex;justify-content:space-between;align-items:center;margin:5px 0;font-size:.8rem}
+    .row span:first-child{color:var(--muted)}
+    .row span:last-child{font-weight:600;font-family:monospace;font-size:.75rem;max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    label{font-size:.72rem;color:var(--muted);font-weight:600;display:block;margin-top:10px}
+    label:first-child{margin-top:0}
+    input{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--bdr);border-radius:10px;padding:9px 13px;color:var(--txt);font-size:.875rem;margin-top:5px}
+    input:focus{outline:none;border-color:var(--acc)}
+    button{width:100%;padding:11px;border-radius:10px;font-weight:700;font-size:.78rem;text-transform:uppercase;letter-spacing:.05em;border:none;cursor:pointer;margin-top:10px;transition:opacity .2s}
+    button:hover{opacity:.8}
+    .ba{background:linear-gradient(135deg,#f59e0b,#f97316);color:#0f172a}
+    .bg2{background:rgba(34,197,94,.12);color:var(--green);border:1px solid rgba(34,197,94,.25)}
+    .bgh{background:rgba(255,255,255,.05);color:var(--txt);border:1px solid var(--bdr)}
+    .bred{background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.2)}
+    hr{border:none;border-top:1px solid var(--bdr);margin:10px 0}
+    #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surf);border:1px solid var(--bdr);padding:10px 20px;border-radius:10px;font-size:.8rem;display:none;z-index:999;white-space:nowrap}
+    .hidden{display:none!important}
+    #login-card{max-width:340px;margin:12vh auto}
+  </style>
+</head>
+<body>
+<div id="toast"></div>
+
+<div id="login-card" class="card">
+  <h2>🔐 WA Gateway Admin</h2>
+  <label>Token</label>
+  <input type="password" id="tok" placeholder="Masukkan token gateway..." onkeydown="if(event.key==='Enter')doLogin()">
+  <button class="ba" onclick="doLogin()">Login</button>
+</div>
+
+<div id="dash" class="wrap hidden">
+  <h1>📡 WA Gateway Admin</h1>
+
+  <div class="card">
+    <h2>Status Koneksi</h2>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+      <span class="badge br" id="cbadge"><span class="dot" id="cdot"></span><span id="ctxt">Memuat...</span></span>
+      <button class="bgh" onclick="window.open('/qr','_blank')" style="width:auto;padding:4px 12px;font-size:.7rem;margin-top:0">📱 Scan QR</button>
+    </div>
+    <hr>
+    <div class="row"><span>JID / Nomor</span><span id="jid">—</span></div>
+    <div class="row"><span>Uptime</span><span id="upt">—</span></div>
+  </div>
+
+  <div class="card">
+    <h2>📊 Statistik Pesan</h2>
+    <div class="grid2">
+      <div class="sbox"><div class="sl">Terkirim</div><div class="sv g" id="s-sent">—</div></div>
+      <div class="sbox"><div class="sl">Gagal</div><div class="sv r" id="s-fail">—</div></div>
+      <div class="sbox" style="grid-column:1/-1">
+        <div class="sl">Terakhir Kirim</div>
+        <div class="sv" style="font-size:.95rem" id="s-at">Belum ada</div>
+        <div class="sm" id="s-to">—</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>⚙️ Konfigurasi</h2>
+    <label>Nomor WA Penerima (tanpa +, tanpa strip)</label>
+    <input type="tel" id="cfg-num" placeholder="6282149335323">
+    <label>Nominal Iuran (Rp)</label>
+    <input type="number" id="cfg-amt" placeholder="150000">
+    <button class="ba" onclick="saveConfig()">💾 Simpan Konfigurasi</button>
+  </div>
+
+  <div class="card">
+    <h2>📤 Test Kirim WhatsApp</h2>
+    <label>Nomor Tujuan</label>
+    <input type="tel" id="t-num" placeholder="628xxxx (dari config jika kosong)">
+    <label>Pesan</label>
+    <input type="text" id="t-msg" value="Test dari WA Gateway Admin 🚀">
+    <button class="bg2" onclick="sendTest()">Kirim Test</button>
+  </div>
+
+  <button class="bred" onclick="logout()" style="margin-bottom:24px">Logout</button>
+</div>
+
+<script>
+  let T='';
+  const API=location.origin;
+  const toast=document.getElementById('toast');
+
+  function showToast(m){toast.textContent=m;toast.style.display='block';setTimeout(()=>toast.style.display='none',3000)}
+
+  function doLogin(){
+    const t=document.getElementById('tok').value.trim();
+    if(!t)return;
+    T=t;localStorage.setItem('wa_token',t);init();
+  }
+
+  function logout(){localStorage.removeItem('wa_token');location.reload()}
+
+  async function init(){
+    try{
+      const r=await fetch(API+'/status',{headers:{'Authorization':'Bearer '+T}});
+      if(r.status===401){showToast('❌ Token salah!');return}
+      document.getElementById('login-card').classList.add('hidden');
+      document.getElementById('dash').classList.remove('hidden');
+      loadCfg();tick();setInterval(tick,5000);
+    }catch(e){showToast('Tidak bisa terhubung!')}
+  }
+
+  async function tick(){
+    try{
+      const r=await fetch(API+'/status',{headers:{'Authorization':'Bearer '+T}});
+      const d=(await r.json()).data;
+      const ok=d.connected;
+      document.getElementById('cbadge').className='badge '+(ok?'bg':'br');
+      document.getElementById('cdot').className='dot '+(ok?'dg':'');
+      document.getElementById('ctxt').textContent=ok?'Terhubung ✅':'Terputus ❌';
+      document.getElementById('jid').textContent=d.jid||'—';
+      document.getElementById('upt').textContent=d.uptime||'—';
+      if(d.stats){
+        document.getElementById('s-sent').textContent=d.stats.total_sent??0;
+        document.getElementById('s-fail').textContent=d.stats.total_failed??0;
+        document.getElementById('s-at').textContent=d.stats.last_sent_at||'Belum ada';
+        document.getElementById('s-to').textContent=d.stats.last_sent_to?'→ '+d.stats.last_sent_to+' ('+d.stats.last_type+')':'—';
+      }
+    }catch(e){}
+  }
+
+  async function loadCfg(){
+    try{
+      const r=await fetch(API+'/config',{headers:{'Authorization':'Bearer '+T}});
+      const d=(await r.json()).data;
+      if(d){document.getElementById('cfg-num').value=d.recipient_number||'';document.getElementById('cfg-amt').value=d.iuran_amount||'';}
+    }catch(e){}
+  }
+
+  async function saveConfig(){
+    const body={recipient_number:document.getElementById('cfg-num').value.trim(),iuran_amount:parseInt(document.getElementById('cfg-amt').value)||0};
+    try{
+      const r=await fetch(API+'/config',{method:'POST',headers:{'Authorization':'Bearer '+T,'Content-Type':'application/json'},body:JSON.stringify(body)});
+      const j=await r.json();
+      showToast(j.success?'✅ Tersimpan!':'❌ '+j.error);
+    }catch(e){showToast('Error: '+e.message)}
+  }
+
+  async function sendTest(){
+    const num=document.getElementById('t-num').value.trim()||document.getElementById('cfg-num').value.trim();
+    const msg=document.getElementById('t-msg').value.trim()||'Test WA Gateway 🚀';
+    if(!num){showToast('Masukkan nomor tujuan!');return}
+    try{
+      const r=await fetch(API+'/send',{method:'POST',headers:{'Authorization':'Bearer '+T,'Content-Type':'application/json'},body:JSON.stringify({target:num,message:msg})});
+      const j=await r.json();
+      showToast(j.success?'✅ Terkirim!':'❌ '+j.error);
+    }catch(e){showToast('Error: '+e.message)}
+  }
+
+  window.onload=()=>{const s=localStorage.getItem('wa_token');if(s){T=s;document.getElementById('tok').value=s;init();}};
+</script>
+</body></html>`)
+}
+
+// GET/POST /config — Baca/tulis konfigurasi gateway
+func handleConfig(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
+		cfgMu.RLock()
+		cfg := gwConfig
+		cfgMu.RUnlock()
+		jsonOK(w, cfg)
+		return
+	}
+	// POST
+	var newCfg GatewayConfig
+	if err := json.NewDecoder(r.Body).Decode(&newCfg); err != nil {
+		jsonError(w, "JSON tidak valid: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+	cfgMu.Lock()
+	gwConfig = newCfg
+	cfgMu.Unlock()
+	saveConfig()
+	jsonOK(w, map[string]string{"message": "Konfigurasi tersimpan"})
+}
+
 // POST /send — Kirim pesan teks
 // Form: target=628xxx&message=Halo
 func handleSend(w http.ResponseWriter, r *http.Request) {
@@ -281,10 +545,18 @@ func handleSend(w http.ResponseWriter, r *http.Request) {
 		Conversation: proto.String(message),
 	})
 	if err != nil {
+		statsMu.Lock()
+		totalFailed++
+		statsMu.Unlock()
 		jsonError(w, "Gagal kirim pesan: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
-
+	statsMu.Lock()
+	totalSent++
+	lastSentAt = time.Now()
+	lastSentTo = target
+	lastSentType = "text"
+	statsMu.Unlock()
 	jsonOK(w, map[string]string{"status": "sent", "target": target})
 }
 
@@ -349,10 +621,18 @@ func handleSendMedia(w http.ResponseWriter, r *http.Request) {
 		},
 	})
 	if err != nil {
+		statsMu.Lock()
+		totalFailed++
+		statsMu.Unlock()
 		jsonError(w, "Gagal kirim media: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
-
+	statsMu.Lock()
+	totalSent++
+	lastSentAt = time.Now()
+	lastSentTo = target
+	lastSentType = "image_url"
+	statsMu.Unlock()
 	jsonOK(w, map[string]string{"status": "sent", "target": target, "type": "image"})
 }
 
@@ -451,10 +731,18 @@ func handleSendBase64(w http.ResponseWriter, r *http.Request) {
 		},
 	})
 	if err != nil {
+		statsMu.Lock()
+		totalFailed++
+		statsMu.Unlock()
 		jsonError(w, "Gagal kirim gambar: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
-
+	statsMu.Lock()
+	totalSent++
+	lastSentAt = time.Now()
+	lastSentTo = target
+	lastSentType = "image_base64"
+	statsMu.Unlock()
 	jsonOK(w, map[string]string{"status": "sent", "target": target, "type": "image_base64"})
 }
 
