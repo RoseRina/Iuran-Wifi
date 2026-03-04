@@ -677,19 +677,16 @@
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth(), db = firebase.firestore(), storage = firebase.storage(), appId = "gdi-wifi-ledger";
 
-        async function initSecurity() {
-            // Load config gateway (paralel dengan Firebase init)
-            loadGatewayConfig(); // tidak perlu await — nilai fallback sudah aman
-            try {
-                // Kickstart anonymous sign-in dan langsung sync data (paralel)
-                try {
-                    await auth.signInAnonymously();
-                    // Langsung sync setelah auth berhasil (tidak tunggu callback)
-                    if (!hasSynced) { hasSynced = true; syncData(); }
-                } catch (e) { }
+        // Aktifkan cache lokal agar load data instan dari browser IndexedDB
+        db.enablePersistence({ synchronizeTabs: true }).catch(() => { /* ok, mungkin tab lain */ });
 
-                // Safety fallback: kalau dalam 1.5 detik tidak sync, paksa sync
-                setTimeout(() => { if (!hasSynced) { hasSynced = true; syncData(); } }, 1500);
+        async function initSecurity() {
+            // Langsung sync data dari cache (instan) — tidak tunggu auth
+            if (!hasSynced) { hasSynced = true; syncData(); }
+            loadGatewayConfig(); // paralel
+            try {
+                // Auth anonymous untuk operasi Firestore yang butuh auth
+                try { await auth.signInAnonymously(); } catch (e) { }
 
                 auth.onAuthStateChanged(async (user) => {
                     // Saat logout, Firebase akan mengirim user = null.
